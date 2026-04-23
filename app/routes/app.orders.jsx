@@ -9,7 +9,7 @@ const CSS = `
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
   --bg:#F5F2EC;--surface:#FDFBF8;--surface-2:#F0EDE6;--surface-3:#E8E4DB;
-  --border:rgba(60,45,20,0.09);--border-md:rgba(60,45,20,0.15);--border-strong:rgba(60,45,20,0.25);
+  --border:rgba(60,45,20,0.06);--border-md:rgba(60,45,20,0.12);--border-strong:rgba(60,45,20,0.22);
   --text:#231F17;--text-2:#6B6251;--text-3:#A89F8E;
   --gold:#B8782A;--gold-bg:#FBF3E6;--gold-text:#7A4F18;--gold-border:rgba(184,120,42,0.25);
   --teal:#2A7A6A;--teal-bg:#E6F5F2;--teal-text:#185448;
@@ -20,53 +20,77 @@ const CSS = `
   --slate-bg:#EEEAE4;--slate-text:#4A4438;
   --orange-bg:#FBF0E6;--orange-text:#7A4A18;
   --r-sm:8px;--r-md:12px;--r-lg:16px;--r-xl:20px;
-  --shadow-xs:0 1px 2px rgba(60,45,20,0.06);
-  --shadow-sm:0 2px 6px rgba(60,45,20,0.07),0 1px 2px rgba(60,45,20,0.05);
-  --shadow-md:0 6px 18px rgba(60,45,20,0.09),0 2px 4px rgba(60,45,20,0.05);
-  --shadow-lg:0 16px 40px rgba(60,45,20,0.13),0 4px 8px rgba(60,45,20,0.07);
+  --shadow-xs:0 1px 2px rgba(60,45,20,0.04);
+  --shadow-sm:0 2px 6px rgba(60,45,20,0.06),0 1px 2px rgba(60,45,20,0.04);
+  --shadow-md:0 6px 18px rgba(60,45,20,0.08),0 2px 4px rgba(60,45,20,0.04);
+  --shadow-lg:0 16px 40px rgba(60,45,20,0.12),0 4px 8px rgba(60,45,20,0.06);
 }
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.55;min-height:100vh;}
 ::-webkit-scrollbar{width:6px;height:6px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:3px;}
-.ord-header{background:var(--text);padding:0 28px;display:flex;align-items:center;gap:20px;height:58px;position:sticky;top:0;z-index:60;}
-.brand{display:flex;align-items:center;gap:12px;}
-.brand-mark{width:32px;height:32px;border:1.5px solid rgba(255,255,255,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.05);}
-.brand-name{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;color:#fff;letter-spacing:0.02em;}
-.brand-tag{font-size:10px;color:rgba(255,255,255,0.38);font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;margin-left:2px;}
-.header-mid{flex:1;display:flex;align-items:center;justify-content:center;}
-.header-right{display:flex;align-items:center;gap:10px;}
-.sync-badge{font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.03em;}
+
+.ord-header {
+  background: rgba(253, 251, 248, 0.85);
+  backdrop-filter: blur(10px);
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  height: 64px;
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  border-bottom: 1px solid var(--border);
+}
+.header-mid{flex:1;display:flex;align-items:center;justify-content:flex-start; font-family:'Cormorant Garamond', serif; font-size: 22px; font-weight: 600;}
+.header-right{display:flex;align-items:center;gap:15px;}
+.sync-badge{display:flex; align-items:center; gap:6px; font-family:'DM Mono',monospace;font-size:11px;color:var(--text-3);background:var(--surface-2); padding:4px 10px; border-radius:30px;}
+
+.inv-main{padding:30px 40px; max-width:1440px; margin:0;}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-bottom:25px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;transition:all 0.2s;box-shadow:var(--shadow-xs);border-top: 3px solid var(--accent, var(--border-md));}
+.stat-card:hover{box-shadow:var(--shadow-sm);transform:translateY(-2px);}
+.stat-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.stat-num{font-size:34px;font-weight:300;color:var(--text);line-height:1;font-family:'Cormorant Garamond',serif;}
 .stat-num.danger{color:var(--rose);}
-.alerts-panel{width:220px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;}
-.alerts-panel-title{font-size:11px;font-weight:500;color:var(--text-2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;}
-.alert-item{background:var(--rose-bg);border:1px solid rgba(154,42,58,0.15);border-radius:var(--r-md);padding:10px 12px;margin-bottom:7px;cursor:pointer;transition:opacity 0.12s;display:flex;align-items:center;gap:10px;}
-.alert-item:hover{opacity:0.82;}
-.alert-thumb{width:32px;height:32px;border-radius:6px;object-fit:cover;background:var(--rose-bg);flex-shrink:0;}
-.sku-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;margin-bottom:14px;}
-.section-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
-.sku-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
-.sku-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);cursor:pointer;transition:all 0.15s;overflow:hidden;}
-.sku-card:hover{border-color:var(--border-strong);transform:translateY(-1px);box-shadow:var(--shadow-sm);}
+
+.alerts-panel{width:240px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px; box-shadow:var(--shadow-xs);}
+.alerts-panel-title{font-size:12px;font-weight:600;color:var(--text);text-transform:uppercase;letter-spacing:1px;margin-bottom:15px; display:flex; align-items:center; gap:8px;}
+.alert-item{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:12px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:12px;}
+.alert-item:hover{border-color:var(--rose); background:var(--rose-bg);}
+.alert-thumb{width:36px;height:36px;border-radius:8px;object-fit:cover;background:var(--surface-3);flex-shrink:0;}
+
+.sku-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:24px;margin-bottom:20px;box-shadow:var(--shadow-xs);}
+.section-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+.sku-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
+.sku-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);cursor:pointer;transition:all 0.2s;overflow:hidden;box-shadow:var(--shadow-xs);}
+.sku-card:hover{border-color:var(--gold);transform:translateY(-3px);box-shadow:var(--shadow-md);}
 .sku-card.sku-active{border:2px solid var(--gold);background:var(--gold-bg);}
-.sku-img-wrap{width:100%;height:110px;overflow:hidden;background:var(--surface-3);position:relative;}
-.sku-big{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:400;color:var(--text);line-height:1;}
-.toolbar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;}
-.search-wrap{position:relative;flex:1;min-width:200px;}
-.search-wrap input{width:100%;padding:8px 12px 8px 34px;border:1px solid var(--border-md);border-radius:var(--r-sm);background:var(--surface);font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;transition:border-color 0.15s;}
-.search-wrap input:focus{border-color:var(--gold);}
-.bulk-bar{display:flex;align-items:center;gap:10px;background:var(--text);color:#fff;border-radius:var(--r-md);padding:10px 16px;margin-bottom:10px;flex-wrap:wrap;}
-.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow-xs);}
+.sku-img-wrap{width:100%;height:150px;overflow:hidden;background:var(--surface-3);position:relative;}
+.sku-big{font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:400;color:var(--text);line-height:1;}
+
+.toolbar{display:flex;gap:12px;margin-bottom:15px;flex-wrap:wrap;align-items:center;}
+.search-wrap{position:relative;flex:1;min-width:250px;}
+.search-wrap input{width:100%;padding:10px 14px 10px 42px;border:1px solid var(--border-md);border-radius:var(--r-md);background:var(--surface);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);outline:none;transition:all 0.2s;}
+.search-wrap input:focus{border-color:var(--gold);box-shadow: 0 0 0 3px var(--gold-bg);}
+
+.bulk-bar{display:flex;align-items:center;gap:12px;background:var(--text);color:#fff;border-radius:var(--r-lg);padding:14px 24px;margin-bottom:15px;flex-wrap:wrap;box-shadow:var(--shadow-md);}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--shadow-sm);}
 .orders-table{width:100%;border-collapse:collapse;}
-.orders-table th{text-align:left;padding:10px 14px;font-size:10px;font-weight:500;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;background:var(--surface-2);}
-.badge{display:inline-block;font-size:10px;font-weight:500;padding:3px 8px;border-radius:20px;white-space:nowrap;}
-.b-gold{background:var(--gold-bg);color:var(--gold-text);}
-.b-teal{background:var(--teal-bg);color:var(--teal-text);}
-.modal-overlay{position:fixed;inset:0;background:rgba(35,31,23,0.5);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px;backdrop-filter:blur(3px);}
-.modal{background:var(--surface);border-radius:var(--r-xl);width:100%;max-width:680px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);}
-.modal-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--text);}
-.btn-primary{background:var(--text);color:var(--surface);border-color:var(--text);font-weight:500;cursor:pointer;}
-.handoff-row{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text-2);padding:7px 0;border-bottom:1px solid var(--border);}
+.orders-table th{text-align:left;padding:14px 18px;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;background:var(--surface-2);border-bottom:1px solid var(--border);}
+.orders-table td{padding:14px 18px; border-bottom:1px solid var(--border-md);}
+
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:4px 10px;border-radius:30px;white-space:nowrap;letter-spacing:0.3px;}
+.b-gold{background:var(--gold-bg);color:var(--gold-text);border:1px solid var(--gold-border);}
+.b-teal{background:var(--teal-bg);color:var(--teal-text);border:1px solid rgba(42,122,106,0.1);}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(35,31,23,0.3);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px;backdrop-filter:blur(6px);}
+.modal{background:var(--surface);border-radius:var(--r-xl);width:100%;max-width:720px;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg); border:1px solid var(--border-md);}
+.modal-title{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;color:var(--text);}
+.btn-primary{background:var(--text);color:var(--surface);border:none;padding:10px 20px;border-radius:var(--r-sm);font-weight:600;cursor:pointer;transition:all 0.2s;}
+.btn-primary:hover{background:#000;transform:translateY(-1px);}
+.handoff-row{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text-2);padding:10px 0;border-bottom:1px solid var(--border-md);}
 `;
 
 // ── CONSTANTS ─────────────────────────────────────────────────────────────────
@@ -170,19 +194,20 @@ export const loader = async ({ request }) => {
     let cursor = null, hasNext = true;
     while (hasNext) {
       const resp = await admin.graphql(`
-        query($cursor: String) {
-          orders(first: 250, after: $cursor, sortKey: CREATED_AT, reverse: true) {
+query($cursor: String) {
+  orders(first: 250, after: $cursor, sortKey: CREATED_AT, reverse: true) {
             pageInfo { hasNextPage endCursor }
             edges { node {
               id name createdAt displayFinancialStatus displayFulfillmentStatus
               totalPriceSet { shopMoney { amount currencyCode } }
               customer { firstName lastName email }
-              lineItems(first: 5) { edges { node { title sku quantity image { url } } } }
+      lineItems(first: 5) { edges { node { title sku quantity image { url } } } }
               tags note
-            }}
-          }
-        }
-      `, { variables: { cursor } });
+    }
+    }
+  }
+}
+`, { variables: { cursor } });
       const json = await resp.json();
       // GraphQL errors come back as 200 with { errors: [...] } — must check explicitly
       if (json.errors?.length) {
@@ -201,18 +226,19 @@ export const loader = async ({ request }) => {
       let cursor = null, hasNext = true;
       while (hasNext) {
         const resp = await admin.graphql(`
-          query($cursor: String) {
-            orders(first: 250, after: $cursor, sortKey: CREATED_AT, reverse: true) {
+query($cursor: String) {
+  orders(first: 250, after: $cursor, sortKey: CREATED_AT, reverse: true) {
               pageInfo { hasNextPage endCursor }
               edges { node {
                 id name createdAt displayFinancialStatus displayFulfillmentStatus
                 totalPriceSet { shopMoney { amount currencyCode } }
-                lineItems(first: 5) { edges { node { title sku quantity image { url } } } }
+      lineItems(first: 5) { edges { node { title sku quantity image { url } } } }
                 tags note
-              }}
-            }
-          }
-        `, { variables: { cursor } });
+    }
+    }
+  }
+}
+`, { variables: { cursor } });
         const json = await resp.json();
         if (json.errors?.length) throw new Error(json.errors.map(e => e.message).join(" | "));
         const page = json.data?.orders;
@@ -238,7 +264,7 @@ export const loader = async ({ request }) => {
     return {
       shopifyId: o.id,
       id: o.name,
-      customer: o.customer ? `${o.customer.firstName} ${o.customer.lastName}`.trim() : "Guest",
+      customer: o.customer ? `${o.customer.firstName} ${o.customer.lastName} `.trim() : "Guest",
       item: li0?.title || "—",
       sku: li0?.sku || "—",
       qty: li0?.quantity || 1,
@@ -411,7 +437,7 @@ export default function OrderWorkflowPage() {
   const alerts = delayed.slice(0, 5);
   const skus = prodSKUs;
   const lParams = useLoaderData().params;
-  const params = new URLSearchParams(lParams).toString() ? `?${new URLSearchParams(lParams).toString()}` : "";
+  const params = new URLSearchParams(lParams).toString() ? `? ${new URLSearchParams(lParams).toString()} ` : "";
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const submitUpdate = (orderId, status, no, hf) => {
@@ -498,7 +524,7 @@ export default function OrderWorkflowPage() {
             {ROLES.map((r) => (
               <button
                 key={r}
-                className={`role-tab ${role === r ? "active" : ""}`}
+                className={`role - tab ${role === r ? "active" : ""} `}
                 onClick={() => {
                   setRole(r);
                   setActiveSKU(null);
@@ -514,7 +540,7 @@ export default function OrderWorkflowPage() {
 
         <div className="header-right">
           <span className="sync-badge">Connected</span>
-          <Link to={`/app${params}`} className="back-btn">
+          <Link to={`/ app${params} `} className="back-btn">
             Dashboard
           </Link>
         </div>
@@ -530,7 +556,7 @@ export default function OrderWorkflowPage() {
                 style={{ "--accent-line": STAT_LINES[s.label] || "transparent" }}
               >
                 <div className="stat-label">{s.label}</div>
-                <div className={`stat-num ${s.isDanger ? "danger" : ""}`}>{s.value}</div>
+                <div className={`stat - num ${s.isDanger ? "danger" : ""} `}>{s.value}</div>
               </div>
             ))}
           </div>
@@ -570,7 +596,7 @@ export default function OrderWorkflowPage() {
               {skus.map((s) => (
                 <div
                   key={s.sku}
-                  className={`sku-card ${activeSKU === s.sku ? "sku-active" : ""}`}
+                  className={`sku - card ${activeSKU === s.sku ? "sku-active" : ""} `}
                   onClick={() => setActiveSKU(activeSKU === s.sku ? null : s.sku)}
                 >
                   <div className="sku-img-wrap">
@@ -644,7 +670,7 @@ export default function OrderWorkflowPage() {
               {BULK_DEFS.map((d) => (
                 <button
                   key={d.label}
-                  className={`bbtn ${d.primary ? "primary" : ""}`}
+                  className={`bbtn ${d.primary ? "primary" : ""} `}
                   onClick={() => setPendingBulk({ def: d, ids: [...selectedIds] })}
                 >
                   {d.label}
@@ -714,7 +740,7 @@ export default function OrderWorkflowPage() {
                     <div className="order-id">{o.shopifyId}</div>
                   </td>
                   <td>
-                    <span className={`badge ${STATUS_BADGE[o.paymentStatus] || ""}`}>
+                    <span className={`badge ${STATUS_BADGE[o.paymentStatus] || ""} `}>
                       {o.paymentStatus}
                     </span>
                   </td>
@@ -729,7 +755,7 @@ export default function OrderWorkflowPage() {
                   </td>
                   <td>{o.qty}</td>
                   <td>
-                    <span className={`badge ${STATUS_BADGE[o.status] || ""}`}>{o.status}</span>
+                    <span className={`badge ${STATUS_BADGE[o.status] || ""} `}>{o.status}</span>
                   </td>
                   <td>
                     <span className={o.aging >= 2 ? "age-warn" : "age-ok"}>{o.aging}d</span>
@@ -862,7 +888,7 @@ export default function OrderWorkflowPage() {
               {getSingleActions(selected).map((a, i) => (
                 <button
                   key={i}
-                  className={`btn ${a.p ? "btn-primary" : ""}`}
+                  className={`btn ${a.p ? "btn-primary" : ""} `}
                   onClick={() => submitUpdate(selected.shopifyId, a.ns, a.no, a.hf)}
                 >
                   {a.l}
