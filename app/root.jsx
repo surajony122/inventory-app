@@ -25,6 +25,7 @@ export default function App() {
   );
 }
 
+// Security Handshake for Shopify
 export function ErrorBoundary() {
   return boundary.error(useRouteError());
 }
