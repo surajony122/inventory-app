@@ -821,7 +821,9 @@ export default function InventoryDashboard() {
                   <Thumb src={o.lineItems[0]?.imageUrl} size={36} />
                   <div>
                     <div className="order-num">{o.name} <span className={`badge ${STATUS_BADGE[o.status]}`}>{o.status}</span></div>
-                    <div className="order-cust">👤 {o.customer || "Guest"} · {fmt(o.createdAt)}</div>
+                    <div className="order-cust">
+                      👤 {o.customer ? `${o.customer.firstName} ${o.customer.lastName}`.trim() : "Guest"} · {fmt(o.createdAt)}
+                    </div>
                   </div>
                 </div>
                 <div className="order-right">
