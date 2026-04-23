@@ -7,12 +7,13 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# Install all dependencies including devDependencies for the build step
 COPY package.json package-lock.json* ./
+RUN npm ci
 
-RUN npm ci --omit=dev && npm cache clean --force
-
+# Copy the rest of the code and build
 COPY . .
-
 RUN npm run build
 
+# Command to start the app
 CMD ["npm", "run", "docker-start"]
