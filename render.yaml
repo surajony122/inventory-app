@@ -6,6 +6,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: "3000"
       - key: SHOPIFY_API_KEY
         sync: false
       - key: SHOPIFY_API_SECRET
