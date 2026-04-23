@@ -131,6 +131,21 @@ tbody tr:hover td{background:var(--surface-2);}
 .ml-auto{margin-left:auto;}
 .sku-m{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-2);}
 .price-m{font-family:'DM Mono',monospace;font-size:12px;}
+.role-tabs{display:flex;gap:2px;background:var(--surface-2);padding:3px;border-radius:8px;}
+.vbtn{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;padding:4px 10px;border-radius:5px;border:none;background:transparent;color:var(--text-2);cursor:pointer;transition:all 0.12s;}
+.vbtn.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow-xs);}
+.sku-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;margin-bottom:14px;}
+.section-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+.section-title{font-size:12px;font-weight:500;color:var(--text);display:flex;align-items:center;gap:8px;}
+.sku-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);cursor:pointer;transition:all 0.15s;overflow:hidden;}
+.sku-card:hover{border-color:var(--border-strong);transform:translateY(-1px);box-shadow:var(--shadow-sm);}
+.sku-card.sku-active{border:2px solid var(--gold);background:var(--gold-bg);}
+.sku-img-wrap{width:100%;height:110px;overflow:hidden;background:var(--surface-3);position:relative;}
+.sku-img{width:100%;height:100%;object-fit:cover;display:block;}
+.sku-body{padding:12px 14px;}
+.sku-code{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-3);margin-bottom:3px;letter-spacing:0.3px;}
+.sku-name{font-size:12px;font-weight:500;color:var(--text);line-height:1.3;margin-bottom:8px;}
+.sku-big{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:400;color:var(--text);line-height:1;}
 @media(max-width:900px){.stats-grid{grid-template-columns:repeat(3,1fr);}.two-col{grid-template-columns:1fr;}.top-row{flex-direction:column;}.alerts-panel{width:100%;}}
 @media(max-width:600px){.stats-grid{grid-template-columns:repeat(2,1fr);}.inv-main{padding:16px;}.inv-header{padding:0 16px;}}
 `;
