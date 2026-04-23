@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { useLoaderData, useFetcher, Link, useSearchParams } from "react-router";
+import { useLoaderData, useFetcher, Link, useSearchParams, useRouteError } from "react-router";
+import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 
@@ -986,3 +987,11 @@ export default function InventoryDashboard() {
     </>
   );
 }
+
+export function ErrorBoundary() {
+  return boundary.error(useRouteError());
+}
+
+export const headers = (headersArgs) => {
+  return boundary.headers(headersArgs);
+};

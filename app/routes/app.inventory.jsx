@@ -1,4 +1,5 @@
-import { useLoaderData, useSubmit, useNavigation } from "react-router";
+import { useLoaderData, useSubmit, useNavigation, useRouteError } from "react-router";
+import { boundary } from "@shopify/shopify-app-react-router/server";
 import {
   Page, Layout, Card, IndexTable, Badge, Text, Box, TextField,
   Thumbnail, InlineStack, Button, BlockStack, Divider, Tabs,
@@ -9,13 +10,13 @@ import { useState, useMemo } from "react";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 function stockTone(qty) {
-  if (qty <= 0)  return "critical";
-  if (qty <= 5)  return "warning";
+  if (qty <= 0) return "critical";
+  if (qty <= 5) return "warning";
   return "success";
 }
 function stockLabel(qty) {
-  if (qty <= 0)  return "Out of Stock";
-  if (qty <= 5)  return "Low Stock";
+  if (qty <= 0) return "Out of Stock";
+  if (qty <= 5) return "Low Stock";
   return "In Stock";
 }
 
@@ -58,8 +59,8 @@ export const loader = async ({ request }) => {
     const json = await resp.json();
     const page = json.data?.products;
     products = products.concat(page?.edges?.map(e => e.node) || []);
-    hasNext  = page?.pageInfo?.hasNextPage || false;
-    cursor   = page?.pageInfo?.endCursor   || null;
+    hasNext = page?.pageInfo?.hasNextPage || false;
+    cursor = page?.pageInfo?.endCursor || null;
   }
 
   const localInventory = await prisma.inventory.findMany();
@@ -73,13 +74,13 @@ export const action = async ({ request }) => {
   const actionType = fd.get("actionType");
 
   if (actionType === "updateStock") {
-    const variantId   = fd.get("variantId");
-    const quantity    = parseInt(fd.get("quantity") || "0", 10);
+    const variantId = fd.get("variantId");
+    const quantity = parseInt(fd.get("quantity") || "0", 10);
     const binLocation = fd.get("binLocation") || "";
-    const notes       = fd.get("notes") || "";
-    const sku         = fd.get("sku") || "";
+    const notes = fd.get("notes") || "";
+    const sku = fd.get("sku") || "";
     await prisma.inventory.upsert({
-      where:  { id: variantId },
+      where: { id: variantId },
       update: { quantity, binLocation, notes, sku },
       create: { id: variantId, quantity, binLocation, notes, sku },
     });
@@ -90,7 +91,7 @@ export const action = async ({ request }) => {
     const updates = JSON.parse(fd.get("updates") || "[]");
     for (const u of updates) {
       await prisma.inventory.upsert({
-        where:  { id: u.variantId },
+        where: { id: u.variantId },
         update: { quantity: u.quantity, binLocation: u.bin, notes: u.note, sku: u.sku },
         create: { id: u.variantId, quantity: u.quantity, binLocation: u.bin, notes: u.note, sku: u.sku },
       });
@@ -107,13 +108,13 @@ const FILTER_TABS = ["All", "Low Stock", "Out of Stock"];
 // ── component ─────────────────────────────────────────────────────────────────
 export default function InventoryPage() {
   const { products, localInventory } = useLoaderData();
-  const submit     = useSubmit();
+  const submit = useSubmit();
   const navigation = useNavigation();
-  const isLoading  = navigation.state === "submitting";
+  const isLoading = navigation.state === "submitting";
 
-  const [query,    setQuery]    = useState("");
+  const [query, setQuery] = useState("");
   const [tabIndex, setTabIndex] = useState(0);
-  const [edits,    setEdits]    = useState({});
+  const [edits, setEdits] = useState({});
 
   // Flatten variants
   const variants = useMemo(() => {
@@ -126,8 +127,8 @@ export default function InventoryPage() {
           id: v.id, vTitle: v.title, sku: v.sku || "",
           shopifyQty: v.inventoryQuantity ?? 0,
           whQty: local?.quantity ?? 0,
-          bin:   local?.binLocation ?? "",
-          note:  local?.notes ?? "",
+          bin: local?.binLocation ?? "",
+          note: local?.notes ?? "",
         });
       });
     });
@@ -144,9 +145,9 @@ export default function InventoryPage() {
         v.bin.toLowerCase().includes(q);
       const filter = FILTER_TABS[tabIndex];
       const matchF =
-        filter === "All"          ? true :
-        filter === "Low Stock"    ? (v.shopifyQty > 0 && v.shopifyQty <= 5) :
-        filter === "Out of Stock" ? v.shopifyQty <= 0 : true;
+        filter === "All" ? true :
+          filter === "Low Stock" ? (v.shopifyQty > 0 && v.shopifyQty <= 5) :
+            filter === "Out of Stock" ? v.shopifyQty <= 0 : true;
       return matchQ && matchF;
     });
   }, [variants, query, tabIndex]);
@@ -163,11 +164,11 @@ export default function InventoryPage() {
     const data = edits[id] || variants.find(v => v.id === id);
     const fd = new FormData();
     fd.append("actionType", "updateStock");
-    fd.append("variantId",   id);
-    fd.append("quantity",    data.whQty);
+    fd.append("variantId", id);
+    fd.append("quantity", data.whQty);
     fd.append("binLocation", data.bin);
-    fd.append("notes",       data.note);
-    fd.append("sku",         data.sku);
+    fd.append("notes", data.note);
+    fd.append("sku", data.sku);
     submit(fd, { method: "POST" });
     setEdits(prev => { const n = { ...prev }; delete n[id]; return n; });
   };
@@ -176,26 +177,26 @@ export default function InventoryPage() {
     const updates = Object.entries(edits).map(([variantId, data]) => ({
       variantId,
       quantity: parseInt(data.whQty) || 0,
-      bin:  data.bin  || "",
+      bin: data.bin || "",
       note: data.note || "",
-      sku:  data.sku  || "",
+      sku: data.sku || "",
     }));
     const fd = new FormData();
     fd.append("actionType", "bulkSave");
-    fd.append("updates",    JSON.stringify(updates));
+    fd.append("updates", JSON.stringify(updates));
     submit(fd, { method: "POST" });
     setEdits({});
   };
 
   const tabs = [
-    { id: "all",      content: `All (${variants.length})`,                                              panelID: "panel-all" },
-    { id: "low",      content: `Low Stock (${variants.filter(v => v.shopifyQty > 0 && v.shopifyQty <= 5).length})`, panelID: "panel-low" },
-    { id: "out",      content: `Out of Stock (${variants.filter(v => v.shopifyQty <= 0).length})`,      panelID: "panel-out" },
+    { id: "all", content: `All (${variants.length})`, panelID: "panel-all" },
+    { id: "low", content: `Low Stock (${variants.filter(v => v.shopifyQty > 0 && v.shopifyQty <= 5).length})`, panelID: "panel-low" },
+    { id: "out", content: `Out of Stock (${variants.filter(v => v.shopifyQty <= 0).length})`, panelID: "panel-out" },
   ];
 
   const rowMarkup = filtered.map((item, index) => {
-    const data     = edits[item.id] || item;
-    const changed  = !!edits[item.id];
+    const data = edits[item.id] || item;
+    const changed = !!edits[item.id];
 
     return (
       <IndexTable.Row id={item.id} key={item.id} position={index}>
@@ -290,10 +291,10 @@ export default function InventoryPage() {
           {/* Stats row */}
           <InlineStack gap="400" wrap={false}>
             {[
-              { label: "Total Variants",  value: variants.length,                                              tone: undefined },
-              { label: "Low Stock",       value: variants.filter(v => v.shopifyQty > 0 && v.shopifyQty <= 5).length, tone: "warning" },
-              { label: "Out of Stock",    value: variants.filter(v => v.shopifyQty <= 0).length,               tone: "critical" },
-              { label: "Unsaved Edits",   value: editedCount,                                                  tone: editedCount > 0 ? "attention" : undefined },
+              { label: "Total Variants", value: variants.length, tone: undefined },
+              { label: "Low Stock", value: variants.filter(v => v.shopifyQty > 0 && v.shopifyQty <= 5).length, tone: "warning" },
+              { label: "Out of Stock", value: variants.filter(v => v.shopifyQty <= 0).length, tone: "critical" },
+              { label: "Unsaved Edits", value: editedCount, tone: editedCount > 0 ? "attention" : undefined },
             ].map(({ label, value, tone }) => (
               <Card key={label}>
                 <BlockStack gap="100">
@@ -360,3 +361,11 @@ export default function InventoryPage() {
     </Page>
   );
 }
+
+export function ErrorBoundary() {
+  return boundary.error(useRouteError());
+}
+
+export const headers = (headersArgs) => {
+  return boundary.headers(headersArgs);
+};

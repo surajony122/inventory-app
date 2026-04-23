@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { useLoaderData, useSubmit, useNavigation, Link } from "react-router";
+import { useLoaderData, useSubmit, useNavigation, Link, useRouteError } from "react-router";
+import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 
@@ -926,3 +927,11 @@ export default function OrderWorkflowPage() {
     </div>
   );
 }
+
+export function ErrorBoundary() {
+  return boundary.error(useRouteError());
+}
+
+export const headers = (headersArgs) => {
+  return boundary.headers(headersArgs);
+};
