@@ -1,4 +1,4 @@
-import { Outlet, useLoaderData, useRouteError, Link } from "react-router";
+import { Outlet, useLoaderData, useRouteError, Link, useLocation } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { NavMenu } from "@shopify/app-bridge-react";
@@ -6,18 +6,22 @@ import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }) => {
   await authenticate.admin(request);
-  return { apiKey: process.env.SHOPIFY_API_KEY || "" };
+  const url = new URL(request.url);
+  return {
+    apiKey: process.env.SHOPIFY_API_KEY || "",
+    params: url.search // Keep the shop, host, etc.
+  };
 };
 
 export default function App() {
-  const { apiKey } = useLoaderData();
+  const { apiKey, params } = useLoaderData();
 
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey}>
       <NavMenu>
-        <Link to="/app" rel="home">Dashboard</Link>
-        <Link to="/app?tab=orders">Order Workflow</Link>
-        <Link to="/app?tab=products">Inventory</Link>
+        <Link to={`/app${params}`} rel="home">Dashboard</Link>
+        <Link to={`/app?tab=orders${params.replace("?", "&")}`}>Order Workflow</Link>
+        <Link to={`/app?tab=products${params.replace("?", "&")}`}>Inventory</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>
