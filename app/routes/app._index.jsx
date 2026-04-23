@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useLoaderData, useFetcher, Link } from "react-router";
+import { useState, useEffect, useMemo } from "react";
+import { useLoaderData, useFetcher, Link, useSearchParams } from "react-router";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 
@@ -392,12 +392,18 @@ const TABS = [
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function InventoryDashboard() {
   const { products, orders, warehouse: initWarehouse, ordersError } = useLoaderData();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [tab, setTab] = useState("dashboard");
+  const [tab, setTab] = useState(searchParams.get("tab") || "dashboard");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [expanded, setExpanded] = useState(new Set());
   const [pending, setPending] = useState({});
+
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t && t !== tab) setTab(t);
+  }, [searchParams]);
   const [warehouse, setWarehouse] = useState(initWarehouse);
   const [toasts, setToasts] = useState([]);
 
@@ -458,7 +464,7 @@ export default function InventoryDashboard() {
     setPending({});
   }
 
-  function navigate(t) { setTab(t); setSearch(""); setFilter("all"); }
+  function navigate(t) { setTab(t); setSearch(""); setFilter("all"); setSearchParams({ tab: t }); }
   function toggleOrder(id) {
     setExpanded(prev => {
       const n = new Set(prev);
