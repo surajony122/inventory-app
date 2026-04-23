@@ -238,7 +238,43 @@ export const loader = async ({ request }) => {
     warehouseRows.map(r => [r.id, { quantity: r.quantity, binLocation: r.binLocation || "", notes: r.notes || "" }])
   );
 
-  return { products, orders, warehouse, ordersError };
+  const orderIds = orders.map(o => o.id);
+  const localStates = orderIds.length
+    ? await prisma.orderWorkflow.findMany({ where: { id: { in: orderIds } } })
+    : [];
+
+  const workflows = orders.map(o => {
+    const state = localStates.find(s => s.id === o.id);
+    return {
+      ...o,
+      status: state?.status || "Awaiting Inventory Check",
+      owner: state?.owner || "Inventory - Queue",
+      handoffs: JSON.parse(state?.handoffs || "[]"),
+      internalNote: state?.note || "",
+    };
+  });
+
+  return { products, orders: workflows, warehouse, ordersError };
+};
+
+// ── CONSTANTS FOR WORKFLOW ────────────────────────────────────────────────────
+const PROD_STATUSES = ["Sent to Production", "In Production", "Production Complete"];
+const ROLES = ["admin", "inventory", "production", "dispatch"];
+const STATUS_BADGE = {
+  "Awaiting Inventory Check": "b-warning",
+  "Ready for Dispatch": "b-success",
+  "Sent to Production": "b-info",
+  "In Production": "b-blue",
+  "Production Complete": "b-violet",
+  "Returned to Inventory": "b-teal",
+  "Dispatched": "b-slate",
+  "On Hold": "b-danger",
+};
+const ROLE_FILTER = {
+  admin: () => true,
+  inventory: o => ["Awaiting Inventory Check", "Returned to Inventory", "Ready for Dispatch"].includes(o.status),
+  production: o => PROD_STATUSES.includes(o.status),
+  dispatch: o => ["Ready for Dispatch", "Dispatched"].includes(o.status),
 };
 
 // ── ACTION ────────────────────────────────────────────────────────────────────
@@ -280,15 +316,15 @@ function cur(n, currency = "INR") {
 
 function QtyBadge({ q }) {
   if (q === 0) return <span className="badge b-danger">0</span>;
-  if (q <= 5)  return <span className="badge b-warning">{q}</span>;
-  return              <span className="badge b-success">{q}</span>;
+  if (q <= 5) return <span className="badge b-warning">{q}</span>;
+  return <span className="badge b-success">{q}</span>;
 }
 
 function DiffChip({ diff }) {
   if (diff === null) return <span style={{ color: "var(--text-3)", fontSize: 12 }}>—</span>;
   if (diff > 0) return <span className="diff-chip d-pos">+{diff}</span>;
   if (diff < 0) return <span className="diff-chip d-neg">{diff}</span>;
-  return               <span className="diff-chip d-zero">0</span>;
+  return <span className="diff-chip d-zero">0</span>;
 }
 
 function Thumb({ src, alt, size = 38 }) {
@@ -309,22 +345,22 @@ function FulfillBadge({ status }) {
 
 const TABS = [
   ["dashboard", "Dashboard"],
-  ["products",  "Products & Inventory"],
-  ["orders",    "Open Orders"],
-  ["alerts",    "Alerts"],
+  ["products", "Products & Inventory"],
+  ["orders", "Open Orders"],
+  ["alerts", "Alerts"],
 ];
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function InventoryDashboard() {
   const { products, orders, warehouse: initWarehouse, ordersError } = useLoaderData();
 
-  const [tab,      setTab]      = useState("dashboard");
-  const [search,   setSearch]   = useState("");
-  const [filter,   setFilter]   = useState("all");
+  const [tab, setTab] = useState("dashboard");
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
   const [expanded, setExpanded] = useState(new Set());
-  const [pending,  setPending]  = useState({});
+  const [pending, setPending] = useState({});
   const [warehouse, setWarehouse] = useState(initWarehouse);
-  const [toasts,   setToasts]   = useState([]);
+  const [toasts, setToasts] = useState([]);
 
   const fetcher = useFetcher();
 
@@ -348,12 +384,12 @@ export default function InventoryDashboard() {
   }
 
   function saveVariant(vid) {
-    const p  = pending[vid] || {};
+    const p = pending[vid] || {};
     const wh = warehouse[vid] || {};
     const qty = p.qty !== undefined ? p.qty : (wh.quantity !== undefined ? String(wh.quantity) : "");
     if (qty === "") { showToast("Enter a quantity first", "error"); return; }
     const binLocation = p.binLocation !== undefined ? p.binLocation : (wh.binLocation || "");
-    const notes       = p.notes !== undefined ? p.notes : (wh.notes || "");
+    const notes = p.notes !== undefined ? p.notes : (wh.notes || "");
     fetcher.submit(
       { type: "saveVariant", variantId: vid, quantity: parseInt(qty), binLocation, notes },
       { method: "post", encType: "application/json" }
@@ -471,7 +507,7 @@ export default function InventoryDashboard() {
                   <thead><tr><th></th><th>Product</th><th>SKU</th><th>Shopify Qty</th><th>Warehouse</th></tr></thead>
                   <tbody>
                     {lowItems.slice(0, 10).map(v => {
-                      const q  = v.inventoryQuantity || 0;
+                      const q = v.inventoryQuantity || 0;
                       const wh = warehouse[v.id];
                       return (
                         <tr key={v.id} className={q === 0 ? "row-out" : "row-low"}>
@@ -542,9 +578,9 @@ export default function InventoryDashboard() {
       p.title.toLowerCase().includes(q) ||
       p.variants.some(v => (v.sku || "").toLowerCase().includes(q))
     );
-    if (filter === "out")  list = list.filter(p => p.variants.some(v => (v.inventoryQuantity || 0) === 0));
-    if (filter === "low")  list = list.filter(p => p.variants.some(v => { const qty = v.inventoryQuantity || 0; return qty > 0 && qty <= 5; }));
-    if (filter === "ok")   list = list.filter(p => p.variants.every(v => (v.inventoryQuantity || 0) > 5));
+    if (filter === "out") list = list.filter(p => p.variants.some(v => (v.inventoryQuantity || 0) === 0));
+    if (filter === "low") list = list.filter(p => p.variants.some(v => { const qty = v.inventoryQuantity || 0; return qty > 0 && qty <= 5; }));
+    if (filter === "ok") list = list.filter(p => p.variants.every(v => (v.inventoryQuantity || 0) > 5));
     if (filter === "miss") list = list.filter(p => p.variants.some(v => !warehouse[v.id]));
 
     const hasPending = Object.keys(pending).length > 0;
@@ -610,7 +646,7 @@ export default function InventoryDashboard() {
                   }
                   prod.variants.forEach(v => {
                     const wh = warehouse[v.id] || {};
-                    const p  = pending[v.id] || {};
+                    const p = pending[v.id] || {};
                     const sq = v.inventoryQuantity || 0;
                     const wqRaw = p.qty !== undefined ? p.qty : (wh.quantity !== undefined ? String(wh.quantity) : "");
                     const wq = wqRaw !== "" ? parseInt(wqRaw) : null;
@@ -716,18 +752,18 @@ export default function InventoryDashboard() {
                         </thead>
                         <tbody>
                           {o.lineItems.map((li, i) => {
-                            const prod    = products.find(p => p.variants.some(v => v.id === li.variantId));
+                            const prod = products.find(p => p.variants.some(v => v.id === li.variantId));
                             const variant = prod?.variants.find(v => v.id === li.variantId);
-                            const sq      = variant ? (variant.inventoryQuantity || 0) : null;
-                            const wh      = li.variantId ? warehouse[li.variantId] : null;
-                            const avail   = wh ? wh.quantity : sq;
+                            const sq = variant ? (variant.inventoryQuantity || 0) : null;
+                            const wh = li.variantId ? warehouse[li.variantId] : null;
+                            const avail = wh ? wh.quantity : sq;
                             const [stockCls, stockLbl] = avail === null
                               ? ["b-slate", "Unknown"]
                               : avail >= li.quantity
-                              ? ["b-success", "✓ Available"]
-                              : avail > 0
-                              ? ["b-warning", "⚠ Partial"]
-                              : ["b-danger", "✗ Short"];
+                                ? ["b-success", "✓ Available"]
+                                : avail > 0
+                                  ? ["b-warning", "⚠ Partial"]
+                                  : ["b-danger", "✗ Short"];
                             return (
                               <tr key={i}>
                                 <td style={{ padding: "8px 6px 8px 16px", width: 46 }}>
@@ -740,7 +776,7 @@ export default function InventoryDashboard() {
                                 <td>{sq !== null ? <QtyBadge q={sq} /> : "—"}</td>
                                 <td>
                                   {wh ? <span className="badge b-info">{wh.quantity}</span>
-                                      : <span style={{ fontSize: 11, color: "var(--text-3)" }}>Not entered</span>}
+                                    : <span style={{ fontSize: 11, color: "var(--text-3)" }}>Not entered</span>}
                                 </td>
                                 <td>
                                   {wh?.binLocation
@@ -849,7 +885,7 @@ export default function InventoryDashboard() {
         </div>
 
         <div className="header-right">
-          <Link to="/app/orders" className="hdr-btn">🛒 Order Workflow →</Link>
+          <div className="sync-badge">Live Inventory Active</div>
         </div>
       </header>
 
@@ -860,9 +896,9 @@ export default function InventoryDashboard() {
           </div>
         )}
         {tab === "dashboard" && <DashboardTab />}
-        {tab === "products"  && <ProductsTab />}
-        {tab === "orders"    && <OrdersTab />}
-        {tab === "alerts"    && <AlertsTab />}
+        {tab === "products" && <ProductsTab />}
+        {tab === "orders" && <OrdersTab />}
+        {tab === "alerts" && <AlertsTab />}
       </main>
 
       <div className="toast-wrap">
