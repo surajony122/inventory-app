@@ -49,3 +49,11 @@ required = true
 [metaobjects.app.example.fields.description]
 name = "Description"
 type = "multi_line_text_field"
+[navigation]
+[[navigation.links]]
+label = "Dashboard"
+destination = "/app"
+
+[[navigation.links]]
+label = "Order Workflow"
+destination = "/app/orders"
