@@ -220,8 +220,8 @@ const STATUS_BADGE = {
 };
 const STATUS_CHIP = {
   "Sent to Production": { cls: "b-orange", lbl: "Queued" },
-  "In Production":      { cls: "b-blue",   lbl: "Active" },
-  "Production Complete":{ cls: "b-violet", lbl: "Done"   },
+  "In Production": { cls: "b-blue", lbl: "Active" },
+  "Production Complete": { cls: "b-violet", lbl: "Done" },
 };
 const PRI_BADGE = { High: "b-pri-h", Medium: "b-pri-m", Low: "b-pri-l" };
 const STAT_LINES = {
@@ -231,20 +231,20 @@ const STAT_LINES = {
   "On Hold": "#9A2A3A",
 };
 const roleFilter = {
-  admin:      () => true,
-  inventory:  o => ["Awaiting Inventory Check", "Returned to Inventory", "Ready for Dispatch"].includes(o.status),
+  admin: () => true,
+  inventory: o => ["Awaiting Inventory Check", "Returned to Inventory", "Ready for Dispatch"].includes(o.status),
   production: o => PROD_STATUSES.includes(o.status),
-  dispatch:   o => ["Ready for Dispatch", "Dispatched"].includes(o.status),
+  dispatch: o => ["Ready for Dispatch", "Dispatched"].includes(o.status),
 };
 const BULK_DEFS = [
-  { label: "Stock available → dispatch", primary: true,  app: ["Awaiting Inventory Check"],     ns: "Ready for Dispatch",    no: "Dispatch - Queue",   hf: { from: "Inventory", to: "Dispatch" } },
-  { label: "Send to production",         primary: false, app: ["Awaiting Inventory Check"],     ns: "Sent to Production",    no: "Production - Queue", hf: { from: "Inventory", to: "Production" } },
-  { label: "Mark in production",         primary: true,  app: ["Sent to Production"],           ns: "In Production",         no: null,                 hf: { from: "Queue",     to: "Artisan" } },
-  { label: "Mark production complete",   primary: true,  app: ["In Production"],                ns: "Production Complete",   no: null,                 hf: { from: "Production",to: "QC" } },
-  { label: "Return to inventory",        primary: true,  app: ["Production Complete"],          ns: "Returned to Inventory", no: "Inventory - Queue",  hf: { from: "Production",to: "Inventory" } },
-  { label: "Ready for dispatch",         primary: true,  app: ["Returned to Inventory"],        ns: "Ready for Dispatch",    no: "Dispatch - Queue",   hf: { from: "Inventory", to: "Dispatch" } },
-  { label: "Mark dispatched",            primary: true,  app: ["Ready for Dispatch"],           ns: "Dispatched",            no: "Courier",            hf: { from: "Dispatch",  to: "Courier" } },
-  { label: "Put on hold",                primary: false, app: ["Awaiting Inventory Check","Returned to Inventory","Ready for Dispatch","Sent to Production","In Production"], ns: "On Hold", no: null, hf: null },
+  { label: "Stock available → dispatch", primary: true, app: ["Awaiting Inventory Check"], ns: "Ready for Dispatch", no: "Dispatch - Queue", hf: { from: "Inventory", to: "Dispatch" } },
+  { label: "Send to production", primary: false, app: ["Awaiting Inventory Check"], ns: "Sent to Production", no: "Production - Queue", hf: { from: "Inventory", to: "Production" } },
+  { label: "Mark in production", primary: true, app: ["Sent to Production"], ns: "In Production", no: null, hf: { from: "Queue", to: "Artisan" } },
+  { label: "Mark production complete", primary: true, app: ["In Production"], ns: "Production Complete", no: null, hf: { from: "Production", to: "QC" } },
+  { label: "Return to inventory", primary: true, app: ["Production Complete"], ns: "Returned to Inventory", no: "Inventory - Queue", hf: { from: "Production", to: "Inventory" } },
+  { label: "Ready for dispatch", primary: true, app: ["Returned to Inventory"], ns: "Ready for Dispatch", no: "Dispatch - Queue", hf: { from: "Inventory", to: "Dispatch" } },
+  { label: "Mark dispatched", primary: true, app: ["Ready for Dispatch"], ns: "Dispatched", no: "Courier", hf: { from: "Dispatch", to: "Courier" } },
+  { label: "Put on hold", primary: false, app: ["Awaiting Inventory Check", "Returned to Inventory", "Ready for Dispatch", "Sent to Production", "In Production"], ns: "On Hold", no: null, hf: null },
 ];
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
@@ -270,22 +270,22 @@ function fmtDate(d) {
 }
 function getAvailBulk(ids, orders) {
   const sel = orders.filter(o => ids.includes(o.shopifyId));
-  const ss  = [...new Set(sel.map(o => o.status))];
+  const ss = [...new Set(sel.map(o => o.status))];
   return BULK_DEFS.filter(d => ss.every(s => d.app.includes(s)));
 }
 function getSingleActions(o) {
   switch (o.status) {
     case "Awaiting Inventory Check": return [
-      { l: "Stock available → dispatch", p: true,  ns: "Ready for Dispatch",    no: "Dispatch - Queue",   hf: { from: "Inventory", to: "Dispatch" } },
-      { l: "Send to production",         p: false, ns: "Sent to Production",    no: "Production - Queue", hf: { from: "Inventory", to: "Production" } },
-      { l: "Put on hold",                p: false, ns: "On Hold",               no: null,                 hf: null },
+      { l: "Stock available → dispatch", p: true, ns: "Ready for Dispatch", no: "Dispatch - Queue", hf: { from: "Inventory", to: "Dispatch" } },
+      { l: "Send to production", p: false, ns: "Sent to Production", no: "Production - Queue", hf: { from: "Inventory", to: "Production" } },
+      { l: "Put on hold", p: false, ns: "On Hold", no: null, hf: null },
     ];
-    case "Sent to Production":    return [{ l: "Mark in production",       p: true, ns: "In Production",         no: null,                hf: { from: "Queue",      to: "Artisan" } }];
-    case "In Production":         return [{ l: "Mark production complete", p: true, ns: "Production Complete",   no: null,                hf: { from: "Production", to: "QC" } }];
-    case "Production Complete":   return [{ l: "Return to inventory",      p: true, ns: "Returned to Inventory", no: "Inventory - Queue", hf: { from: "Production", to: "Inventory" } }];
-    case "Returned to Inventory": return [{ l: "Ready for dispatch",       p: true, ns: "Ready for Dispatch",    no: "Dispatch - Queue",  hf: { from: "Inventory",  to: "Dispatch" } }];
-    case "Ready for Dispatch":    return [{ l: "Mark dispatched",          p: true, ns: "Dispatched",            no: "Courier",           hf: { from: "Dispatch",   to: "Courier" } }];
-    case "On Hold":               return [{ l: "Resume — inventory check", p: true, ns: "Awaiting Inventory Check", no: "Inventory - Queue", hf: null }];
+    case "Sent to Production": return [{ l: "Mark in production", p: true, ns: "In Production", no: null, hf: { from: "Queue", to: "Artisan" } }];
+    case "In Production": return [{ l: "Mark production complete", p: true, ns: "Production Complete", no: null, hf: { from: "Production", to: "QC" } }];
+    case "Production Complete": return [{ l: "Return to inventory", p: true, ns: "Returned to Inventory", no: "Inventory - Queue", hf: { from: "Production", to: "Inventory" } }];
+    case "Returned to Inventory": return [{ l: "Ready for dispatch", p: true, ns: "Ready for Dispatch", no: "Dispatch - Queue", hf: { from: "Inventory", to: "Dispatch" } }];
+    case "Ready for Dispatch": return [{ l: "Mark dispatched", p: true, ns: "Dispatched", no: "Courier", hf: { from: "Dispatch", to: "Courier" } }];
+    case "On Hold": return [{ l: "Resume — inventory check", p: true, ns: "Awaiting Inventory Check", no: "Inventory - Queue", hf: null }];
     default: return [];
   }
 }
@@ -321,7 +321,7 @@ export const loader = async ({ request }) => {
       if (!page) break;
       rawOrders = rawOrders.concat(page.edges?.map(e => e.node) || []);
       hasNext = page.pageInfo?.hasNextPage || false;
-      cursor  = page.pageInfo?.endCursor || null;
+      cursor = page.pageInfo?.endCursor || null;
     }
   } catch (err) {
     ordersError = err.message || "Orders unavailable";
@@ -348,7 +348,7 @@ export const loader = async ({ request }) => {
         if (!page) break;
         rawOrders = rawOrders.concat(page.edges?.map(e => e.node) || []);
         hasNext = page.pageInfo?.hasNextPage || false;
-        cursor  = page.pageInfo?.endCursor || null;
+        cursor = page.pageInfo?.endCursor || null;
       }
       ordersError = null; // fallback succeeded, clear the error
     } catch (fallbackErr) {
@@ -363,7 +363,7 @@ export const loader = async ({ request }) => {
 
   const orders = rawOrders.map(o => {
     const state = localStates.find(s => s.id === o.id);
-    const li0   = o.lineItems.edges[0]?.node;
+    const li0 = o.lineItems.edges[0]?.node;
     return {
       shopifyId: o.id,
       id: o.name,
@@ -385,7 +385,12 @@ export const loader = async ({ request }) => {
     };
   });
 
-  return { orders, ordersError };
+  return {
+    orders,
+    ordersError,
+    apiKey: process.env.SHOPIFY_API_KEY || "",
+    params: new URL(request.url).search
+  };
 };
 
 // ── ACTION ────────────────────────────────────────────────────────────────────
@@ -396,11 +401,11 @@ export const action = async ({ request }) => {
 
   if (actionType === "updateWorkflow") {
     const orderId = fd.get("orderId");
-    const status  = fd.get("status");
-    const note    = fd.get("note") || undefined;
-    const owner   = fd.get("owner") || undefined;
-    const hfFrom  = fd.get("hfFrom");
-    const hfTo    = fd.get("hfTo");
+    const status = fd.get("status");
+    const note = fd.get("note") || undefined;
+    const owner = fd.get("owner") || undefined;
+    const hfFrom = fd.get("hfFrom");
+    const hfTo = fd.get("hfTo");
     const existing = await prisma.orderWorkflow.findUnique({ where: { id: orderId } });
     const handoffs = JSON.parse(existing?.handoffs || "[]");
     if (status && status !== existing?.status) {
@@ -415,11 +420,11 @@ export const action = async ({ request }) => {
   }
 
   if (actionType === "bulkUpdate") {
-    const ids    = JSON.parse(fd.get("ids") || "[]");
+    const ids = JSON.parse(fd.get("ids") || "[]");
     const status = fd.get("status");
-    const owner  = fd.get("owner") || null;
+    const owner = fd.get("owner") || null;
     const hfFrom = fd.get("hfFrom");
-    const hfTo   = fd.get("hfTo");
+    const hfTo = fd.get("hfTo");
     for (const id of ids) {
       const existing = await prisma.orderWorkflow.findUnique({ where: { id } });
       const handoffs = JSON.parse(existing?.handoffs || "[]");
@@ -447,7 +452,7 @@ export const action = async ({ request }) => {
 
   if (actionType === "saveNote") {
     const orderId = fd.get("orderId");
-    const note    = fd.get("note") || "";
+    const note = fd.get("note") || "";
     await prisma.orderWorkflow.upsert({
       where: { id: orderId },
       update: { note },
@@ -462,25 +467,25 @@ export const action = async ({ request }) => {
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function OrderWorkflowPage() {
   const { orders: loadedOrders, ordersError } = useLoaderData();
-  const submit     = useSubmit();
+  const submit = useSubmit();
   const navigation = useNavigation();
 
   // ── local state for optimistic UI ─────────────────────────────────────────
   const [orders, setOrders] = useState(loadedOrders);
   useEffect(() => { setOrders(loadedOrders); }, [loadedOrders]);
 
-  const [role,         setRole]         = useState("admin");
-  const [query,        setQuery]        = useState("");
-  const [statusF,      setStatusF]      = useState("all");
-  const [priorityF,    setPriorityF]    = useState("all");
-  const [payF,         setPayF]         = useState("all");
-  const [activeSKU,    setActiveSKU]    = useState(null);
-  const [skuF,         setSkuF]         = useState("all");
-  const [selectedIds,  setSelectedIds]  = useState(new Set());
-  const [currentPage,  setCurrentPage]  = useState(1);
-  const [selected,     setSelected]     = useState(null);
-  const [modalNote,    setModalNote]    = useState("");
-  const [pendingBulk,  setPendingBulk]  = useState(null);
+  const [role, setRole] = useState("admin");
+  const [query, setQuery] = useState("");
+  const [statusF, setStatusF] = useState("all");
+  const [priorityF, setPriorityF] = useState("all");
+  const [payF, setPayF] = useState("all");
+  const [activeSKU, setActiveSKU] = useState(null);
+  const [skuF, setSkuF] = useState("all");
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selected, setSelected] = useState(null);
+  const [modalNote, setModalNote] = useState("");
+  const [pendingBulk, setPendingBulk] = useState(null);
 
   // ── derived ───────────────────────────────────────────────────────────────
   const visible = useMemo(() => {
@@ -586,7 +591,7 @@ export default function OrderWorkflowPage() {
     ].map(v => `"${v}"`).join(","));
     const csv = [header.join(","), ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
-    const url  = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = `unniyarcha-orders-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
     URL.revokeObjectURL(url);
   }
@@ -601,12 +606,12 @@ export default function OrderWorkflowPage() {
   }
 
   function StatsPanel() {
-    const inv  = visible.filter(o => o.status === "Awaiting Inventory Check").length;
+    const inv = visible.filter(o => o.status === "Awaiting Inventory Check").length;
     const prod = visible.filter(o => ["Sent to Production", "In Production"].includes(o.status)).length;
     const disp = visible.filter(o => o.status === "Ready for Dispatch").length;
-    const q    = visible.filter(o => o.status === "Sent to Production").length;
-    const a    = visible.filter(o => o.status === "In Production").length;
-    const tq   = visible.reduce((s, o) => s + o.qty, 0);
+    const q = visible.filter(o => o.status === "Sent to Production").length;
+    const a = visible.filter(o => o.status === "In Production").length;
+    const tq = visible.reduce((s, o) => s + o.qty, 0);
 
     return (
       <div className="top-row">
@@ -711,7 +716,7 @@ export default function OrderWorkflowPage() {
   function Pagination() {
     if (totalPages <= 1) return null;
     const start = (currentPage - 1) * PAGE_SIZE;
-    const end   = Math.min(start + page.length, visible.length);
+    const end = Math.min(start + page.length, visible.length);
     const pages = [];
     for (let i = 1; i <= Math.min(7, totalPages); i++) {
       let p;
@@ -844,7 +849,7 @@ export default function OrderWorkflowPage() {
 
   // ── MAIN RENDER ───────────────────────────────────────────────────────────
   const allPageSelected = page.length > 0 && page.every(o => selectedIds.has(o.shopifyId));
-  const someSelected    = page.some(o => selectedIds.has(o.shopifyId));
+  const someSelected = page.some(o => selectedIds.has(o.shopifyId));
 
   return (
     <>
