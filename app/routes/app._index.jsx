@@ -241,7 +241,9 @@ export const loader = async ({ request }) => {
       o.fulfillmentStatus === "UNFULFILLED" ||
       o.fulfillmentStatus === "PARTIAL"
     );
+    console.log(`[Orders] Fetched ${orders.length} unfulfilled orders.`);
   } catch (err) {
+    console.error("[Orders Error]", err);
     ordersError = err.message || "Orders unavailable";
   }
 
@@ -814,51 +816,59 @@ export default function InventoryDashboard() {
         )}
 
         <div className="orders-list">
-          {filtered.map(o => (
-            <div key={o.id} className="order-card">
-              <div className="order-hdr" onClick={() => toggleOrder(o.id)}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <Thumb src={o.lineItems[0]?.imageUrl} size={36} />
-                  <div>
-                    <div className="order-num">{o.name} <span className={`badge ${STATUS_BADGE[o.status]}`}>{o.status}</span></div>
-                    <div className="order-cust">
-                      👤 {o.customer ? `${o.customer.firstName} ${o.customer.lastName}`.trim() : "Guest"} · {fmt(o.createdAt)}
+          {filtered.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-glyph">◎</div>
+              <p>No orders found matching your criteria.</p>
+              <p style={{ fontSize: 11, marginTop: 4 }}>Try changing the role or search terms.</p>
+            </div>
+          ) : (
+            filtered.map(o => (
+              <div key={o.id} className="order-card">
+                <div className="order-hdr" onClick={() => toggleOrder(o.id)}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <Thumb src={o.lineItems[0]?.imageUrl} size={36} />
+                    <div>
+                      <div className="order-num">{o.name} <span className={`badge ${STATUS_BADGE[o.status]}`}>{o.status}</span></div>
+                      <div className="order-cust">
+                        👤 {o.customer ? `${o.customer.firstName} ${o.customer.lastName}`.trim() : "Guest"} · {fmt(o.createdAt)}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="order-right">
-                  <span className="price-m">{cur(o.totalPrice)}</span>
-                  <span className={`caret${expanded.has(o.id) ? " open" : ""}`}>▼</span>
-                </div>
-              </div>
-              {expanded.has(o.id) && (
-                <div className="order-body" style={{ padding: 16 }}>
-                  <div className="table-wrap">
-                    <table>
-                      <thead><tr><th>Item</th><th>SKU</th><th>Qty</th><th>Status</th><th>Actions</th></tr></thead>
-                      <tbody>
-                        {o.lineItems.map((li, i) => (
-                          <tr key={i}>
-                            <td>{li.title}</td>
-                            <td><span className="sku-m">{li.sku}</span></td>
-                            <td>{li.quantity}</td>
-                            <td><span className={`badge ${STATUS_BADGE[o.status]}`}>{o.status}</span></td>
-                            <td>
-                              <select className="filter-sel" value={o.status} onChange={e => {
-                                fetcher.submit({ type: "updateWorkflow", orderId: o.id, status: e.target.value }, { method: "post", encType: "application/json" });
-                              }}>
-                                {Object.keys(STATUS_BADGE).map(s => <option key={s} value={s}>{s}</option>)}
-                              </select>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="order-right">
+                    <span className="price-m">{cur(o.totalPrice)}</span>
+                    <span className={`caret${expanded.has(o.id) ? " open" : ""}`}>▼</span>
                   </div>
                 </div>
-              )}
-            </div>
-          ))}
+                {expanded.has(o.id) && (
+                  <div className="order-body" style={{ padding: 16 }}>
+                    <div className="table-wrap">
+                      <table>
+                        <thead><tr><th>Item</th><th>SKU</th><th>Qty</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody>
+                          {o.lineItems.map((li, i) => (
+                            <tr key={i}>
+                              <td>{li.title}</td>
+                              <td><span className="sku-m">{li.sku}</span></td>
+                              <td>{li.quantity}</td>
+                              <td><span className={`badge ${STATUS_BADGE[o.status]}`}>{o.status}</span></td>
+                              <td>
+                                <select className="filter-sel" value={o.status} onChange={e => {
+                                  fetcher.submit({ type: "updateWorkflow", orderId: o.id, status: e.target.value }, { method: "post", encType: "application/json" });
+                                }}>
+                                  {Object.keys(STATUS_BADGE).map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </div>
     );
