@@ -2,7 +2,7 @@
 
 client_id = "62d74d928297d3099a02f2357bd108d0"
 name = "Unnicharya "
-application_url = "https://example.com"
+application_url = "https://unnicharya-app.onrender.com"
 embedded = true
 
 [build]
@@ -24,7 +24,7 @@ api_version = "2026-07"
 scopes = "write_products,read_orders,write_orders,read_customers,read_inventory,write_inventory,write_metaobject_definitions,write_metaobjects"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://unnicharya-app.onrender.com/api/auth" ]
 
 [product.metafields.app.demo_info]
 type = "single_line_text_field"
