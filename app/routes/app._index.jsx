@@ -303,6 +303,30 @@ export const action = async ({ request }) => {
     return { ok: true, count: body.updates.length };
   }
 
+  if (body.type === "updateWorkflow") {
+    const { orderId, status, owner, hfFrom, hfTo } = body;
+    const existing = await prisma.orderWorkflow.findUnique({ where: { id: orderId } });
+    const handoffs = JSON.parse(existing?.handoffs || "[]");
+    if (status && status !== existing?.status) {
+      handoffs.push({ from: hfFrom || existing?.status || "Initial", to: hfTo || status, at: new Date().toISOString() });
+    }
+    await prisma.orderWorkflow.upsert({
+      where: { id: orderId },
+      update: { status, owner, note: body.note, handoffs: JSON.stringify(handoffs) },
+      create: { id: orderId, status, owner: owner || "Inventory - Queue", handoffs: JSON.stringify(handoffs), note: body.note || "" },
+    });
+    return { ok: true };
+  }
+
+  if (body.type === "saveNote") {
+    await prisma.orderWorkflow.upsert({
+      where: { id: body.orderId },
+      update: { note: body.note },
+      create: { id: body.orderId, note: body.note, status: "Awaiting Inventory Check", owner: "Inventory - Queue", handoffs: "[]" },
+    });
+    return { ok: true };
+  }
+
   return { ok: false };
 };
 
@@ -692,108 +716,126 @@ export default function InventoryDashboard() {
     );
   }
 
-  // ── ORDERS TAB ─────────────────────────────────────────────────────────────
+  // ── ORDERS TAB (WORKFLOW) ─────────────────────────────────────────────────
   function OrdersTab() {
-    const q = search.toLowerCase();
-    let list = orders;
-    if (q) list = list.filter(o =>
-      o.name.toLowerCase().includes(q) ||
-      (o.customer && `${o.customer.firstName} ${o.customer.lastName}`.toLowerCase().includes(q)) ||
-      o.lineItems.some(li => li.title.toLowerCase().includes(q))
-    );
+    const [role, setRole] = useState("admin");
+    const [skuF, setSkuF] = useState("all");
+    const [activeSKU, setActiveSKU] = useState(null);
 
-    if (!list.length) return (
-      <div className="sec-card">
-        <div className="empty-state"><div className="empty-glyph">◎</div><p>No open orders right now</p></div>
-      </div>
-    );
+    const filtered = useMemo(() => {
+      return orders.filter(o => {
+        if (!ROLE_FILTER[role](o)) return false;
+        if (search && !o.name.toLowerCase().includes(search.toLowerCase()) && !o.customer?.toLowerCase().includes(search.toLowerCase())) return false;
+        if (activeSKU && !o.lineItems.some(li => li.sku === activeSKU)) return false;
+        if (role === "production" && skuF !== "all") {
+          if (skuF === "queued" && o.status !== "Sent to Production") return false;
+          if (skuF === "active" && o.status !== "In Production") return false;
+        }
+        return true;
+      });
+    }, [orders, role, search, activeSKU, skuF]);
+
+    const prodSKUs = useMemo(() => {
+      const map = {};
+      orders.filter(o => PROD_STATUSES.includes(o.status)).forEach(o => {
+        o.lineItems.forEach(li => {
+          if (!li.sku) return;
+          if (!map[li.sku]) map[li.sku] = { sku: li.sku, item: li.title, totalQty: 0, n: 0, img: li.imageUrl };
+          map[li.sku].totalQty += li.quantity;
+          map[li.sku].n++;
+        });
+      });
+      return Object.values(map).sort((a, b) => b.totalQty - a.totalQty);
+    }, [orders]);
 
     return (
-      <div className="sec-card">
-        <div className="toolbar">
-          <div className="search-wrap">
+      <div className="orders-workflow-root">
+        <div className="toolbar" style={{ background: "var(--surface)", borderRadius: "var(--r-md)", marginBottom: 14 }}>
+          <div className="role-tabs" style={{ display: "flex", gap: 4 }}>
+            {ROLES.map(r => (
+              <button key={r} className={`vbtn${role === r ? " active" : ""}`} onClick={() => setRole(r)}>
+                {r[0].toUpperCase() + r.slice(1)}
+              </button>
+            ))}
+          </div>
+          <div className="search-wrap" style={{ maxWidth: 300 }}>
             <svg className="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
               <circle cx="6.5" cy="6.5" r="4" /><path d="M11 11l2.5 2.5" />
             </svg>
-            <input type="text" placeholder="Search orders, customers…" value={search} onChange={e => setSearch(e.target.value)} />
+            <input type="text" placeholder="Search orders..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
-          <span style={{ fontSize: 11, color: "var(--text-3)", marginLeft: "auto" }}>{list.length} open order{list.length !== 1 ? "s" : ""}</span>
+          <div style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-3)" }}>{filtered.length} orders</div>
         </div>
-        <div className="orders-list">
-          {list.map(o => {
-            const open = expanded.has(o.id);
-            const cust = o.customer ? `${o.customer.firstName} ${o.customer.lastName}`.trim() : "Guest";
-            const firstImg = o.lineItems[0]?.imageUrl;
 
-            return (
-              <div key={o.id} className="order-card">
-                <div className="order-hdr" onClick={() => toggleOrder(o.id)}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <Thumb src={firstImg} alt={o.name} size={36} />
-                    <div className="order-meta">
-                      <span className="order-num">{o.name}</span>
-                      <span className="order-cust">👤 {cust}</span>
-                      <span className="order-date">{fmt(o.createdAt)}</span>
-                      <FulfillBadge status={o.fulfillmentStatus} />
-                    </div>
-                  </div>
-                  <div className="order-right">
-                    <span className="price-m" style={{ fontWeight: 600 }}>{cur(o.totalPrice)}</span>
-                    <span className="badge b-info">{o.lineItems.length} item{o.lineItems.length !== 1 ? "s" : ""}</span>
-                    <span className={`caret${open ? " open" : ""}`}>▼</span>
+        {role === "production" && (
+          <div className="sku-section" style={{ marginBottom: 20 }}>
+            <div className="section-bar">
+              <div className="section-title"><span className="title-pip" />Production Queue</div>
+              <div className="view-toggle">
+                {["all", "queued", "active"].map(f => (
+                  <button key={f} className={`vbtn${skuF === f ? " active" : ""}`} onClick={() => setSkuF(f)}>{f}</button>
+                ))}
+              </div>
+            </div>
+            <div className="sku-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px,1fr))", gap: 12 }}>
+              {prodSKUs.map(s => (
+                <div key={s.sku} className={`sku-card${activeSKU === s.sku ? " sku-active" : ""}`} onClick={() => setActiveSKU(activeSKU === s.sku ? null : s.sku)}>
+                  <div className="sku-img-wrap" style={{ height: 80 }}><img src={s.img} className="sku-img" /></div>
+                  <div className="sku-body">
+                    <div className="sku-code">{s.sku}</div>
+                    <div className="sku-name">{s.item}</div>
+                    <div className="sku-big">{s.totalQty}</div>
                   </div>
                 </div>
-                {open && (
-                  <div className="order-body">
-                    <div className="table-wrap">
-                      <table>
-                        <thead>
-                          <tr><th style={{ width: 46 }}></th><th>Product</th><th>Variant</th><th>SKU</th><th>Ordered</th><th>Shopify Stock</th><th>Warehouse</th><th>Bin</th></tr>
-                        </thead>
-                        <tbody>
-                          {o.lineItems.map((li, i) => {
-                            const prod = products.find(p => p.variants.some(v => v.id === li.variantId));
-                            const variant = prod?.variants.find(v => v.id === li.variantId);
-                            const sq = variant ? (variant.inventoryQuantity || 0) : null;
-                            const wh = li.variantId ? warehouse[li.variantId] : null;
-                            const avail = wh ? wh.quantity : sq;
-                            const [stockCls, stockLbl] = avail === null
-                              ? ["b-slate", "Unknown"]
-                              : avail >= li.quantity
-                                ? ["b-success", "✓ Available"]
-                                : avail > 0
-                                  ? ["b-warning", "⚠ Partial"]
-                                  : ["b-danger", "✗ Short"];
-                            return (
-                              <tr key={i}>
-                                <td style={{ padding: "8px 6px 8px 16px", width: 46 }}>
-                                  <Thumb src={li.imageUrl} alt={li.title} size={34} />
-                                </td>
-                                <td><div className="prod-name" style={{ fontSize: 12 }}>{li.title}</div></td>
-                                <td style={{ fontSize: 11, color: "var(--text-3)" }}>{li.variantTitle || "—"}</td>
-                                <td><span className="sku-m">{li.sku || "—"}</span></td>
-                                <td style={{ fontWeight: 600 }}>{li.quantity}</td>
-                                <td>{sq !== null ? <QtyBadge q={sq} /> : "—"}</td>
-                                <td>
-                                  {wh ? <span className="badge b-info">{wh.quantity}</span>
-                                    : <span style={{ fontSize: 11, color: "var(--text-3)" }}>Not entered</span>}
-                                </td>
-                                <td>
-                                  {wh?.binLocation
-                                    ? <span className="sku-m">{wh.binLocation}</span>
-                                    : "—"}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="orders-list">
+          {filtered.map(o => (
+            <div key={o.id} className="order-card">
+              <div className="order-hdr" onClick={() => toggleOrder(o.id)}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <Thumb src={o.lineItems[0]?.imageUrl} size={36} />
+                  <div>
+                    <div className="order-num">{o.name} <span className={`badge ${STATUS_BADGE[o.status]}`}>{o.status}</span></div>
+                    <div className="order-cust">👤 {o.customer || "Guest"} · {fmt(o.createdAt)}</div>
                   </div>
-                )}
+                </div>
+                <div className="order-right">
+                  <span className="price-m">{cur(o.totalPrice)}</span>
+                  <span className={`caret${expanded.has(o.id) ? " open" : ""}`}>▼</span>
+                </div>
               </div>
-            );
-          })}
+              {expanded.has(o.id) && (
+                <div className="order-body" style={{ padding: 16 }}>
+                  <div className="table-wrap">
+                    <table>
+                      <thead><tr><th>Item</th><th>SKU</th><th>Qty</th><th>Status</th><th>Actions</th></tr></thead>
+                      <tbody>
+                        {o.lineItems.map((li, i) => (
+                          <tr key={i}>
+                            <td>{li.title}</td>
+                            <td><span className="sku-m">{li.sku}</span></td>
+                            <td>{li.quantity}</td>
+                            <td><span className={`badge ${STATUS_BADGE[o.status]}`}>{o.status}</span></td>
+                            <td>
+                              <select className="filter-sel" value={o.status} onChange={e => {
+                                fetcher.submit({ type: "updateWorkflow", orderId: o.id, status: e.target.value }, { method: "post", encType: "application/json" });
+                              }}>
+                                {Object.keys(STATUS_BADGE).map(s => <option key={s} value={s}>{s}</option>)}
+                              </select>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     );
