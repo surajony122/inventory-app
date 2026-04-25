@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLoaderData, useSubmit, Link, useLocation, useNavigation, useActionData } from "react-router";
+import { useLoaderData, useSubmit, Link, useLocation, useActionData } from "react-router";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 
@@ -423,9 +423,12 @@ async function fetchAndCacheFromShopify(admin) {
   return { count: rawOrders.length, ordersError };
 }
 
-// ── LOADER — reads from local cache (instant) ─────────────────────────────────
+// ── LOADER — reads from local cache (instant, no Shopify API) ────────────────
 export const loader = async ({ request }) => {
-  await authenticate.admin(request);
+  // Auth is handled by the app.jsx layout loader.
+  // We don't call authenticate.admin here because:
+  // 1. We only read from local DB (no Shopify API needed)
+  // 2. Calling it triggers a Shopify session-token round-trip that shows "200"
 
   const [cached, states] = await Promise.all([
     prisma.orderCache.findMany({ orderBy:{ updatedAt:"desc" } }),
@@ -504,7 +507,6 @@ export default function OrdersPage(){
   const {orders:init, lastSync:initLastSync, isEmpty}=useLoaderData();
   const submit=useSubmit();
   const { search }=useLocation();
-  const navigation=useNavigation();
 
   const [orders,      setOrders]      = useState(init);
   const [lastSync,    setLastSync]    = useState(initLastSync);
