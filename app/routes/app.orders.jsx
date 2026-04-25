@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLoaderData, useSubmit, Link } from "react-router";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
@@ -20,7 +20,7 @@ const CSS = `
   --orange-bg:#FBF0E6;--orange-text:#7A4A18;
   --r-sm:8px;--r-md:12px;--r-lg:16px;--r-xl:20px;
   --shadow-xs:0 1px 2px rgba(60,45,20,0.06);
-  --shadow-sm:0 2px 6px rgba(60,45,20,0.07);
+  --shadow-sm:0 2px 6px rgba(60,45,20,0.07),0 1px 2px rgba(60,45,20,0.05);
   --shadow-lg:0 16px 40px rgba(60,45,20,0.13),0 4px 8px rgba(60,45,20,0.07);
 }
 html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.55;min-height:100vh;}
@@ -46,15 +46,64 @@ html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text
 /* LAYOUT */
 .pg-main{padding:24px 28px;max-width:1380px;margin:0 auto;}
 
+/* TOP ROW */
+.top-row{display:flex;gap:16px;margin-bottom:20px;align-items:flex-start;flex-wrap:wrap;}
+.top-row .stats-row{margin-bottom:0;flex:1;min-width:0;}
+
 /* STATS */
 .stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;}
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;position:relative;overflow:hidden;transition:box-shadow 0.15s,transform 0.1s;}
-.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent,transparent);}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent-line,transparent);}
 .stat-card:hover{box-shadow:var(--shadow-sm);transform:translateY(-1px);}
 .stat-label{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;}
 .stat-num{font-size:28px;font-weight:300;font-family:'Cormorant Garamond',serif;line-height:1;}
 .stat-num.c-rose{color:var(--rose);}
 .stat-num.c-gold{color:var(--gold);}
+
+/* ALERTS PANEL */
+.alerts-panel{width:220px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;}
+.alerts-panel-title{font-size:11px;font-weight:500;color:var(--text-2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;}
+.alert-item{background:var(--rose-bg);border:1px solid rgba(154,42,58,0.15);border-radius:var(--r-md);padding:10px 12px;margin-bottom:7px;cursor:pointer;transition:opacity 0.12s;display:flex;align-items:center;gap:10px;}
+.alert-item:hover{opacity:0.82;}
+.alert-item:last-child{margin-bottom:0;}
+.alert-thumb{width:32px;height:32px;border-radius:6px;object-fit:cover;flex-shrink:0;border:1px solid var(--border);}
+.alert-thumb-ph{width:32px;height:32px;border-radius:6px;background:rgba(154,42,58,0.12);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:14px;color:var(--rose-text);}
+.alert-info{flex:1;min-width:0;}
+.alert-id{font-size:12px;font-weight:500;color:var(--rose-text);}
+.alert-status{font-size:10px;color:var(--rose);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.alert-age{font-size:10px;color:var(--rose);font-family:'DM Mono',monospace;margin-top:1px;}
+.alerts-ok{background:var(--teal-bg);border:1px solid rgba(42,122,106,0.15);border-radius:var(--r-md);padding:10px 12px;font-size:11px;color:var(--teal-text);display:flex;align-items:center;gap:6px;}
+
+/* SKU BOARD */
+.sku-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;margin-bottom:14px;}
+.section-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+.section-title{font-size:12px;font-weight:500;color:var(--text);display:flex;align-items:center;gap:8px;}
+.title-pip{width:5px;height:5px;border-radius:50%;background:var(--gold);flex-shrink:0;}
+.view-toggle{display:flex;gap:3px;background:var(--surface-2);border-radius:6px;padding:3px;}
+.vbtn{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;padding:4px 10px;border-radius:5px;border:none;background:transparent;color:var(--text-2);cursor:pointer;transition:all 0.12s;}
+.vbtn.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow-xs);}
+.sku-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;}
+.sku-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);cursor:pointer;transition:all 0.15s;overflow:hidden;}
+.sku-card:hover{border-color:var(--border-strong);transform:translateY(-1px);box-shadow:var(--shadow-sm);}
+.sku-card.active{border:2px solid var(--gold);background:var(--gold-bg);}
+.sku-img-wrap{width:100%;height:100px;overflow:hidden;background:var(--surface-3);position:relative;}
+.sku-img{width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.3s;}
+.sku-card:hover .sku-img{transform:scale(1.04);}
+.sku-img-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:30px;color:var(--border-strong);}
+.sku-body{padding:11px 13px;}
+.sku-code{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-3);margin-bottom:2px;letter-spacing:0.3px;}
+.sku-name{font-size:12px;font-weight:500;color:var(--text);line-height:1.3;margin-bottom:7px;}
+.sku-big{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:400;color:var(--text);line-height:1;}
+.sku-meta{font-size:10px;color:var(--text-3);margin-top:2px;margin-bottom:6px;}
+.sku-bar-bg{height:3px;background:var(--surface-3);border-radius:2px;overflow:hidden;margin-bottom:5px;}
+.sku-bar-fill{height:100%;border-radius:2px;background:var(--blue);transition:width 0.4s ease;}
+.sku-bar-fill.hot{background:var(--gold);}
+.sku-chips{display:flex;gap:4px;flex-wrap:wrap;}
+.schip{font-size:9px;font-weight:500;padding:2px 6px;border-radius:20px;}
+
+/* FILTER BAR */
+.filter-bar{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--gold-text);background:var(--gold-bg);border:1px solid var(--gold-border);border-radius:var(--r-sm);padding:6px 12px;margin-bottom:10px;}
+.filter-clear{margin-left:auto;background:none;border:none;cursor:pointer;font-size:11px;font-family:'DM Sans',sans-serif;color:var(--gold-text);font-weight:500;padding:0;text-decoration:underline;}
 
 /* TOOLBAR */
 .toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}
@@ -69,7 +118,8 @@ html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text
 .dl-btn:hover{background:var(--teal);color:#fff;}
 
 /* BULK BAR */
-.bulk-bar{display:flex;align-items:center;gap:10px;background:var(--text);color:#fff;border-radius:var(--r-md);padding:10px 16px;margin-bottom:12px;flex-wrap:wrap;}
+.bulk-bar{display:flex;align-items:center;gap:10px;background:var(--text);color:#fff;border-radius:var(--r-md);padding:10px 16px;margin-bottom:12px;flex-wrap:wrap;animation:slideDown 0.15s ease;}
+@keyframes slideDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 .bulk-count{font-size:13px;font-weight:500;}
 .bulk-actions{display:flex;gap:6px;flex-wrap:wrap;}
 .bbtn{font-size:12px;font-weight:500;padding:6px 14px;border-radius:var(--r-sm);border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background 0.12s;white-space:nowrap;}
@@ -130,8 +180,10 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--blue);cursor:poin
 .empty-glyph{font-family:'Cormorant Garamond',serif;font-size:44px;color:var(--border-strong);margin-bottom:10px;}
 
 /* MODAL */
-.overlay{position:fixed;inset:0;background:rgba(35,31,23,0.5);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px;backdrop-filter:blur(3px);}
-.modal{background:var(--surface);border-radius:var(--r-xl);width:100%;max-width:680px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);}
+.overlay{position:fixed;inset:0;background:rgba(35,31,23,0.5);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px;backdrop-filter:blur(3px);animation:fadeIn 0.15s ease;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--surface);border-radius:var(--r-xl);width:100%;max-width:680px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:slideUp 0.18s ease;}
+@keyframes slideUp{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
 .modal-hdr{padding:22px 24px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;position:sticky;top:0;background:var(--surface);z-index:1;}
 .modal-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;}
 .modal-sub{font-size:12px;color:var(--text-3);margin-top:3px;}
@@ -182,12 +234,19 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--blue);cursor:poin
 .pri-row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
 .pri-code{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-3);}
 
-@media(max-width:900px){.stats-row{grid-template-columns:repeat(3,1fr);}.info-grid{grid-template-columns:1fr;}}
+/* TOAST */
+.toast-wrap{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:999;pointer-events:none;}
+.toast{background:var(--text);color:#fff;padding:10px 18px;border-radius:var(--r-sm);font-size:13px;display:flex;align-items:center;gap:8px;animation:toastIn 0.2s ease;}
+.toast.t-success{background:var(--teal);}
+.toast.t-error{background:var(--rose);}
+@keyframes toastIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+
+@media(max-width:900px){.stats-row{grid-template-columns:repeat(3,1fr);}.info-grid{grid-template-columns:1fr;}.top-row{flex-direction:column;}.alerts-panel{width:100%;}}
 @media(max-width:600px){.pg-main{padding:16px;}.pg-header{padding:0 16px;}.stats-row{grid-template-columns:repeat(2,1fr);}}
 `;
 
 // ── CONSTANTS ─────────────────────────────────────────────────────────────────
-const ROLES     = ["admin","inventory","production","dispatch"];
+const ROLES = ["admin","inventory","production","dispatch"];
 const PAGE_SIZE = 25;
 const PROD_STATUSES = ["Sent to Production","In Production","Production Complete"];
 
@@ -199,6 +258,11 @@ const STATUS_BADGE = {
 };
 const PAY_BADGE = { Paid:"b-teal","Payment pending":"b-gold",Authorized:"b-cyan","Partially paid":"b-orange" };
 const PRI_BADGE = { High:"b-pri-h",Medium:"b-pri-m",Low:"b-pri-l" };
+const SKU_CHIP  = {
+  "Sent to Production":{cls:"b-orange",lbl:"Queued"},
+  "In Production":{cls:"b-blue",lbl:"Active"},
+  "Production Complete":{cls:"b-violet",lbl:"Done"},
+};
 
 const ROLE_FILTER = {
   admin:      ()  => true,
@@ -258,7 +322,6 @@ function getSingleActions(status){
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
 
-  // Fetch all orders with cursor pagination
   let rawOrders=[], ordersError=null;
   try{
     let cursor=null, hasNext=true;
@@ -279,16 +342,15 @@ export const loader = async ({ request }) => {
       `,{variables:{cursor}});
       const json=await resp.json();
       if(json.errors?.length) throw new Error(json.errors.map(e=>e.message).join(" | "));
-      const pg=json.data?.orders;
-      if(!pg) break;
+      const pg=json.data?.orders; if(!pg) break;
       rawOrders=rawOrders.concat(pg.edges.map(e=>e.node));
-      hasNext=pg.pageInfo.hasNextPage;
-      cursor=pg.pageInfo.endCursor;
+      hasNext=pg.pageInfo.hasNextPage; cursor=pg.pageInfo.endCursor;
     }
   }catch(err){
     ordersError=err.message||"Orders unavailable";
     // Fallback without customer field
     try{
+      rawOrders=[];
       let cursor=null,hasNext=true;
       while(hasNext){
         const resp=await admin.graphql(`
@@ -314,32 +376,21 @@ export const loader = async ({ request }) => {
     }catch(_){ /* keep original error */ }
   }
 
-  // Load local workflow states
   const ids=rawOrders.map(o=>o.id);
   const states=ids.length ? await prisma.orderWorkflow.findMany({where:{id:{in:ids}}}) : [];
 
-  // Merge into flat order objects
   const orders=rawOrders.map(o=>{
     const st=states.find(s=>s.id===o.id);
     const li=o.lineItems.edges[0]?.node;
     return {
-      shopifyId:o.id,
-      id:o.name,
+      shopifyId:o.id, id:o.name,
       customer:o.customer?`${o.customer.firstName} ${o.customer.lastName}`.trim():"Guest",
-      item:li?.title||"—",
-      sku:li?.sku||"—",
-      qty:li?.quantity||1,
-      imageUrl:li?.image?.url||null,
-      lineItems:o.lineItems.edges.map(e=>e.node),
-      orderDate:fmtDate(o.createdAt),
-      createdAt:o.createdAt,
-      priority:getPriority(o.tags),
-      status:st?.status||"Awaiting Inventory Check",
-      owner:st?.owner||"Inventory - Queue",
-      handoffs:JSON.parse(st?.handoffs||"[]"),
-      aging:getAging(o.createdAt),
-      note:st?.note||"",
-      shopifyNote:o.note||"",
+      item:li?.title||"—", sku:li?.sku||"—", qty:li?.quantity||1,
+      imageUrl:li?.image?.url||null, lineItems:o.lineItems.edges.map(e=>e.node),
+      orderDate:fmtDate(o.createdAt), createdAt:o.createdAt,
+      priority:getPriority(o.tags), status:st?.status||"Awaiting Inventory Check",
+      owner:st?.owner||"Inventory - Queue", handoffs:JSON.parse(st?.handoffs||"[]"),
+      aging:getAging(o.createdAt), note:st?.note||"", shopifyNote:o.note||"",
       paymentStatus:fmtPay(o.displayFinancialStatus),
       fulfillStatus:o.displayFulfillmentStatus||"UNFULFILLED",
     };
@@ -404,25 +455,41 @@ export default function OrdersPage(){
   const {orders:init, ordersError}=useLoaderData();
   const submit=useSubmit();
 
-  const [orders,   setOrders]   = useState(init);
-  const [role,     setRole]     = useState("admin");
-  const [query,    setQuery]    = useState("");
-  const [statusF,  setStatusF]  = useState("all");
-  const [priorityF,setPriorityF]= useState("all");
-  const [payF,     setPayF]     = useState("all");
-  const [selIds,   setSelIds]   = useState(new Set());
-  const [page,     setPage]     = useState(1);
-  const [selected, setSelected] = useState(null);
-  const [noteVal,  setNoteVal]  = useState("");
-  const [bulkPending,setBulkPending]=useState(null);
+  const [orders,      setOrders]      = useState(init);
+  const [role,        setRole]        = useState("admin");
+  const [query,       setQuery]       = useState("");
+  const [statusF,     setStatusF]     = useState("all");
+  const [priorityF,   setPriorityF]   = useState("all");
+  const [payF,        setPayF]        = useState("all");
+  const [activeSKU,   setActiveSKU]   = useState(null);   // production SKU filter
+  const [skuView,     setSkuView]     = useState("all");   // all / queued / active
+  const [selIds,      setSelIds]      = useState(new Set());
+  const [page,        setPage]        = useState(1);
+  const [selected,    setSelected]    = useState(null);
+  const [noteVal,     setNoteVal]     = useState("");
+  const [bulkPending, setBulkPending] = useState(null);
+  const [toast,       setToast]       = useState(null);
 
-  // Sync when loader data changes
-  useState(()=>{ setOrders(init); },[init]);
+  // Sync orders when loader data refreshes
+  useEffect(()=>{ setOrders(init); },[init]);
 
-  // ── filtered list ─────────────────────────────────────────────────────────
+  function showToast(msg, type=""){
+    setToast({msg,type});
+    setTimeout(()=>setToast(null),3000);
+  }
+
+  function changeRole(r){
+    setRole(r); setActiveSKU(null); setSkuView("all"); setSelIds(new Set()); setPage(1);
+    setQuery(""); setStatusF("all"); setPriorityF("all"); setPayF("all");
+  }
+
+  // ── visible orders ────────────────────────────────────────────────────────
   const visible=useMemo(()=>{
     return orders.filter(o=>{
       if(!ROLE_FILTER[role](o)) return false;
+      if(activeSKU&&o.sku!==activeSKU) return false;
+      if(role==="production"&&skuView==="queued"&&o.status!=="Sent to Production") return false;
+      if(role==="production"&&skuView==="active"&&o.status!=="In Production") return false;
       if(statusF!=="all"&&o.status!==statusF) return false;
       if(priorityF!=="all"&&o.priority!==priorityF) return false;
       if(payF!=="all"&&o.paymentStatus!==payF) return false;
@@ -432,20 +499,41 @@ export default function OrdersPage(){
       }
       return true;
     });
-  },[orders,role,query,statusF,priorityF,payF]);
+  },[orders,role,activeSKU,skuView,statusF,priorityF,payF,query]);
 
   const totalPages=Math.max(1,Math.ceil(visible.length/PAGE_SIZE));
   const curPage=Math.min(page,totalPages);
   const pageItems=visible.slice((curPage-1)*PAGE_SIZE,curPage*PAGE_SIZE);
 
-  // ── stats ──────────────────────────────────────────────────────────────────
-  const stats={
-    total:visible.length,
-    inv:visible.filter(o=>o.status==="Awaiting Inventory Check").length,
-    prod:visible.filter(o=>PROD_STATUSES.includes(o.status)).length,
-    disp:visible.filter(o=>o.status==="Ready for Dispatch").length,
-    delayed:visible.filter(o=>o.aging>=2).length,
+  // ── stats (role-aware) ────────────────────────────────────────────────────
+  const roleOrders=useMemo(()=>orders.filter(o=>ROLE_FILTER[role](o)),[orders,role]);
+  const delayed=roleOrders.filter(o=>o.aging>=2);
+
+  const stats = role==="production" ? {
+    total:    roleOrders.length,
+    units:    roleOrders.reduce((s,o)=>s+o.qty,0),
+    queued:   roleOrders.filter(o=>o.status==="Sent to Production").length,
+    active:   roleOrders.filter(o=>o.status==="In Production").length,
+    delayed:  delayed.length,
+  } : {
+    total:    roleOrders.length,
+    inv:      roleOrders.filter(o=>o.status==="Awaiting Inventory Check").length,
+    prod:     roleOrders.filter(o=>PROD_STATUSES.includes(o.status)).length,
+    disp:     roleOrders.filter(o=>o.status==="Ready for Dispatch").length,
+    delayed:  delayed.length,
   };
+
+  // ── SKU production board data ─────────────────────────────────────────────
+  const skuGroups=useMemo(()=>{
+    const map={};
+    orders.filter(o=>PROD_STATUSES.includes(o.status)).forEach(o=>{
+      if(!map[o.sku]) map[o.sku]={sku:o.sku,item:o.item,totalQty:0,n:0,ss:{},imageUrl:o.imageUrl};
+      map[o.sku].totalQty+=o.qty; map[o.sku].n++;
+      map[o.sku].ss[o.status]=(map[o.sku].ss[o.status]||0)+o.qty;
+      if(!map[o.sku].imageUrl&&o.imageUrl) map[o.sku].imageUrl=o.imageUrl;
+    });
+    return Object.values(map).sort((a,b)=>b.totalQty-a.totalQty);
+  },[orders]);
 
   // ── mutations ─────────────────────────────────────────────────────────────
   function doUpdate(o,ns,no,hf){
@@ -454,8 +542,12 @@ export default function OrdersPage(){
     fd.append("status",ns); fd.append("owner",no||"");
     if(hf){ fd.append("hfFrom",hf.from); fd.append("hfTo",hf.to); }
     submit(fd,{method:"POST"});
-    setOrders(prev=>prev.map(x=>x.shopifyId!==o.shopifyId?x:{...x,status:ns,...(no?{owner:no}:{}),handoffs:[...x.handoffs,...(hf?[{from:hf.from,to:hf.to,at:new Date().toISOString()}]:[])]}));
+    setOrders(prev=>prev.map(x=>x.shopifyId!==o.shopifyId?x:{
+      ...x,status:ns,...(no?{owner:no}:{}),
+      handoffs:[...x.handoffs,...(hf?[{from:hf.from,to:hf.to,at:new Date().toISOString()}]:[])],
+    }));
     setSelected(null);
+    showToast("Order updated","success");
   }
 
   function doBulk(def,ids){
@@ -466,6 +558,7 @@ export default function OrdersPage(){
     submit(fd,{method:"POST"});
     setOrders(prev=>prev.map(o=>!ids.includes(o.shopifyId)?o:{...o,status:def.ns,...(def.no?{owner:def.no}:{})}));
     setSelIds(new Set()); setBulkPending(null);
+    showToast(`${ids.length} orders updated`,"success");
   }
 
   function doReset(o){
@@ -474,6 +567,7 @@ export default function OrdersPage(){
     submit(fd,{method:"POST"});
     setOrders(prev=>prev.map(x=>x.shopifyId!==o.shopifyId?x:{...x,status:"Awaiting Inventory Check",owner:"Inventory - Queue",note:"",handoffs:[]}));
     setSelected(null);
+    showToast("Workflow reset","success");
   }
 
   function saveNote(o,note){
@@ -491,24 +585,30 @@ export default function OrdersPage(){
     a.download=`orders-${new Date().toISOString().slice(0,10)}.csv`; a.click();
   }
 
-  // ── helpers ────────────────────────────────────────────────────────────────
+  // ── selection helpers ─────────────────────────────────────────────────────
   const selArr=[...selIds];
   const availBulk=getAvailBulk(selArr,orders);
   const allPageSel=pageItems.length>0&&pageItems.every(o=>selIds.has(o.shopifyId));
   const someSel=pageItems.some(o=>selIds.has(o.shopifyId));
 
-  function Thumb({o,size=38}){
-    if(o?.imageUrl) return <img src={o.imageUrl} className="thumb" style={{width:size,height:size}} alt="" onError={e=>{e.target.style.display="none";}}/>;
+  // ── Thumbnail ─────────────────────────────────────────────────────────────
+  function Thumb({src,size=38}){
+    const [err,setErr]=useState(false);
+    if(src&&!err) return <img src={src} className="thumb" style={{width:size,height:size}} alt="" onError={()=>setErr(true)}/>;
     return <div className="thumb-ph" style={{width:size,height:size}}>◈</div>;
   }
 
-  // ── pagination ─────────────────────────────────────────────────────────────
+  // ── Pagination ────────────────────────────────────────────────────────────
   function Pagination(){
     if(totalPages<=1) return null;
     const start=(curPage-1)*PAGE_SIZE, end=Math.min(start+pageItems.length,visible.length);
     const pages=[];
     for(let i=1;i<=Math.min(7,totalPages);i++){
-      let p; if(totalPages<=7) p=i; else if(curPage<=4) p=i; else if(curPage>=totalPages-3) p=totalPages-6+i; else p=curPage-3+i;
+      let p;
+      if(totalPages<=7) p=i;
+      else if(curPage<=4) p=i;
+      else if(curPage>=totalPages-3) p=totalPages-6+i;
+      else p=curPage-3+i;
       if(p>=1&&p<=totalPages) pages.push(p);
     }
     return(
@@ -525,7 +625,72 @@ export default function OrdersPage(){
     );
   }
 
-  // ── single order modal ────────────────────────────────────────────────────
+  // ── SKU Production Board ──────────────────────────────────────────────────
+  function SKUBoard(){
+    if(role!=="production") return null;
+    const maxQ=Math.max(...skuGroups.map(s=>s.totalQty),1);
+    return(
+      <div className="sku-section">
+        <div className="section-bar">
+          <div className="section-title">
+            <span className="title-pip"></span>
+            SKU production queue
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+            <div className="view-toggle">
+              {["all","queued","active"].map(v=>(
+                <button key={v} className={`vbtn${skuView===v?" active":""}`}
+                  onClick={()=>setSkuView(v)}>
+                  {v[0].toUpperCase()+v.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {skuGroups.length===0 ? (
+          <div style={{color:"var(--text-3)",fontSize:12,padding:"12px 0"}}>No SKUs in production queue.</div>
+        ) : (
+          <div className="sku-grid">
+            {skuGroups.map(s=>{
+              const pct=Math.round((s.totalQty/maxQ)*100);
+              const chips=Object.entries(s.ss).map(([st,q])=>{
+                const c=SKU_CHIP[st]||{cls:"b-slate",lbl:st};
+                return <span key={st} className={`schip badge ${c.cls}`}>{c.lbl}: {q}</span>;
+              });
+              return(
+                <div key={s.sku} className={`sku-card${activeSKU===s.sku?" active":""}`}
+                  onClick={()=>setActiveSKU(prev=>prev===s.sku?null:s.sku)}>
+                  <div className="sku-img-wrap">
+                    {s.imageUrl
+                      ? <img src={s.imageUrl} className="sku-img" alt={s.item} onError={e=>{e.target.parentElement.innerHTML='<div class="sku-img-ph">◈</div>';}}/>
+                      : <div className="sku-img-ph">◈</div>}
+                  </div>
+                  <div className="sku-body">
+                    <div className="sku-code">{s.sku||"—"}</div>
+                    <div className="sku-name">{s.item}</div>
+                    <div className="sku-big">{s.totalQty}</div>
+                    <div className="sku-meta">units · {s.n} order{s.n!==1?"s":""}</div>
+                    <div className="sku-bar-bg">
+                      <div className={`sku-bar-fill${s.totalQty>=3?" hot":""}`} style={{width:`${pct}%`}}/>
+                    </div>
+                    <div className="sku-chips">{chips}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div style={{marginTop:12,fontSize:12,fontWeight:500,color:"var(--text-2)",display:"flex",alignItems:"center",gap:8}}>
+          <span className="title-pip"></span>
+          {activeSKU ? `Orders for ${activeSKU}` : "Production orders"}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Order Modal ───────────────────────────────────────────────────────────
   function OrderModal(){
     const o=selected; if(!o) return null;
     const actions=getSingleActions(o.status);
@@ -559,7 +724,6 @@ export default function OrdersPage(){
               )}
             </div>
 
-            {/* Line items */}
             {o.lineItems.length>0&&(
               <div style={{marginBottom:18}}>
                 <div className="section-lbl">Line Items</div>
@@ -578,7 +742,6 @@ export default function OrdersPage(){
               </div>
             )}
 
-            {/* Handoff timeline */}
             <div className="handoff-list">
               <div className="section-lbl">Handoff Timeline</div>
               {o.handoffs.length===0
@@ -593,7 +756,6 @@ export default function OrdersPage(){
                 ))}
             </div>
 
-            {/* Note */}
             <div>
               <div className="section-lbl">Internal Note</div>
               <textarea className="note-area" value={noteVal}
@@ -615,7 +777,7 @@ export default function OrdersPage(){
     );
   }
 
-  // ── bulk confirm modal ─────────────────────────────────────────────────────
+  // ── Bulk Confirm Modal ────────────────────────────────────────────────────
   function BulkModal(){
     if(!bulkPending) return null;
     const {def,ids}=bulkPending;
@@ -669,14 +831,14 @@ export default function OrdersPage(){
             </svg>
           </div>
           <span className="brand-name">Unniyarcha</span>
-          <span className="brand-tag">orders</span>
+          <span className="brand-tag">order workflow</span>
         </div>
 
         <div className="hd-mid">
           <div className="role-tabs">
             {ROLES.map(r=>(
               <button key={r} className={`role-tab${r===role?" active":""}`}
-                onClick={()=>{setRole(r);setSelIds(new Set());setPage(1);}}>
+                onClick={()=>changeRole(r)}>
                 {r[0].toUpperCase()+r.slice(1)}
               </button>
             ))}
@@ -696,14 +858,59 @@ export default function OrdersPage(){
           </div>
         )}
 
-        {/* Stats */}
-        <div className="stats-row">
-          <div className="stat-card"><div className="stat-label">Total Orders</div><div className="stat-num">{stats.total}</div></div>
-          <div className="stat-card" style={{"--accent":"#B8782A"}}><div className="stat-label">Inventory Check</div><div className="stat-num">{stats.inv}</div></div>
-          <div className="stat-card" style={{"--accent":"#2A5F9A"}}><div className="stat-label">In Production</div><div className="stat-num">{stats.prod}</div></div>
-          <div className="stat-card" style={{"--accent":"#2A7A6A"}}><div className="stat-label">Ready to Dispatch</div><div className="stat-num">{stats.disp}</div></div>
-          <div className="stat-card" style={{"--accent":"#9A2A3A"}}><div className="stat-label">Delayed 2d+</div><div className={`stat-num${stats.delayed>0?" c-rose":""}`}>{stats.delayed}</div></div>
+        {/* Top row: Stats + Alerts */}
+        <div className="top-row">
+          {role==="production" ? (
+            <div className="stats-row">
+              <div className="stat-card"><div className="stat-label">Total Orders</div><div className="stat-num">{stats.total}</div></div>
+              <div className="stat-card"><div className="stat-label">Total Units</div><div className="stat-num">{stats.units}</div></div>
+              <div className="stat-card" style={{"--accent-line":"#B8782A"}}><div className="stat-label">Queued</div><div className="stat-num">{stats.queued}</div></div>
+              <div className="stat-card" style={{"--accent-line":"#2A5F9A"}}><div className="stat-label">In Production</div><div className="stat-num">{stats.active}</div></div>
+              <div className="stat-card" style={{"--accent-line":"#9A2A3A"}}><div className="stat-label">Delayed 2d+</div><div className={`stat-num${stats.delayed>0?" c-rose":""}`}>{stats.delayed}</div></div>
+            </div>
+          ) : (
+            <div className="stats-row">
+              <div className="stat-card"><div className="stat-label">Total Orders</div><div className="stat-num">{stats.total}</div></div>
+              <div className="stat-card" style={{"--accent-line":"#B8782A"}}><div className="stat-label">Inventory Check</div><div className="stat-num">{stats.inv}</div></div>
+              <div className="stat-card" style={{"--accent-line":"#2A5F9A"}}><div className="stat-label">In Production</div><div className="stat-num">{stats.prod}</div></div>
+              <div className="stat-card" style={{"--accent-line":"#2A7A6A"}}><div className="stat-label">Ready to Dispatch</div><div className="stat-num">{stats.disp}</div></div>
+              <div className="stat-card" style={{"--accent-line":"#9A2A3A"}}><div className="stat-label">Delayed 2d+</div><div className={`stat-num${stats.delayed>0?" c-rose":""}`}>{stats.delayed}</div></div>
+            </div>
+          )}
+
+          {/* Alerts panel — delayed orders */}
+          <div className="alerts-panel">
+            <div className="alerts-panel-title">Alerts</div>
+            {delayed.length===0
+              ? <div className="alerts-ok">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="#2A7A6A" strokeWidth="1.2"/><path d="M3.5 6l1.8 1.8L8.5 4" stroke="#2A7A6A" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  No delayed orders
+                </div>
+              : delayed.slice(0,6).map(o=>(
+                <div key={o.shopifyId} className="alert-item" onClick={()=>{setSelected(o);setNoteVal(o.note);}}>
+                  {o.imageUrl
+                    ? <img src={o.imageUrl} className="alert-thumb" alt="" onError={e=>{e.target.style.display="none";}}/>
+                    : <div className="alert-thumb-ph">◈</div>}
+                  <div className="alert-info">
+                    <div className="alert-id">{o.id}</div>
+                    <div className="alert-status">{o.status}</div>
+                    <div className="alert-age">{o.aging}d pending</div>
+                  </div>
+                </div>
+              ))}
+          </div>
         </div>
+
+        {/* SKU Production Board (production role only) */}
+        <SKUBoard/>
+
+        {/* SKU active filter bar */}
+        {activeSKU&&(
+          <div className="filter-bar">
+            <span>Filtering by SKU: <strong>{activeSKU}</strong></span>
+            <button className="filter-clear" onClick={()=>setActiveSKU(null)}>Clear filter</button>
+          </div>
+        )}
 
         {/* Bulk bar */}
         {selIds.size>0&&(
@@ -734,7 +941,9 @@ export default function OrdersPage(){
           </div>
           <select className="tb-sel" value={statusF} onChange={e=>{setStatusF(e.target.value);setPage(1);}}>
             <option value="all">All statuses</option>
-            {Object.keys(STATUS_BADGE).map(s=><option key={s} value={s}>{s}</option>)}
+            {(role==="production" ? PROD_STATUSES : Object.keys(STATUS_BADGE)).map(s=>(
+              <option key={s} value={s}>{s}</option>
+            ))}
           </select>
           <select className="tb-sel" value={priorityF} onChange={e=>{setPriorityF(e.target.value);setPage(1);}}>
             <option value="all">All priorities</option>
@@ -807,7 +1016,7 @@ export default function OrdersPage(){
                         setSelIds(n);
                       }}/>
                   </td>
-                  <td style={{padding:"8px 6px 8px 14px"}}><Thumb o={o}/></td>
+                  <td style={{padding:"8px 6px 8px 14px"}}><Thumb src={o.imageUrl}/></td>
                   <td>
                     <div className="ord-id">{o.id}</div>
                     <div className="ord-sid">{o.orderDate}</div>
@@ -872,6 +1081,14 @@ export default function OrdersPage(){
 
       {selected&&<OrderModal/>}
       {bulkPending&&<BulkModal/>}
+
+      {toast&&(
+        <div className="toast-wrap">
+          <div className={`toast${toast.type?" t-"+toast.type:""}`}>
+            {toast.type==="success"?"✓ ":toast.type==="error"?"✗ ":""}{toast.msg}
+          </div>
+        </div>
+      )}
     </>
   );
 }
