@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLoaderData, useSubmit, Link } from "react-router";
+import { useLoaderData, useSubmit, Link, useLocation } from "react-router";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 
@@ -454,6 +454,7 @@ export const action = async ({ request }) => {
 export default function OrdersPage(){
   const {orders:init, ordersError}=useLoaderData();
   const submit=useSubmit();
+  const { search }=useLocation();
 
   const [orders,      setOrders]      = useState(init);
   const [role,        setRole]        = useState("admin");
@@ -846,7 +847,7 @@ export default function OrdersPage(){
         </div>
 
         <div className="hd-right">
-          <Link to="/app" className="hd-link">← Dashboard</Link>
+          <Link to={`/app${search}`} className="hd-link">← Dashboard</Link>
         </div>
       </header>
 

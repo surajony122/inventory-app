@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useLoaderData, useSubmit, Link } from "react-router";
+import { useLoaderData, useSubmit, Link, useLocation } from "react-router";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 
@@ -403,6 +403,7 @@ function FulfillBadge({ s }) {
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function IndexPage() {
   const { products, orders, warehouse: initWh, productsError, ordersError } = useLoaderData();
+  const { search } = useLocation();
   const submit = useSubmit();
 
   const [tab, setTab] = useState("dashboard");
@@ -892,7 +893,7 @@ export default function IndexPage() {
         </div>
 
         <div className="hd-right">
-          <Link to="/app/orders" className="hdr-btn">🛒 Order Workflow →</Link>
+          <Link to={`/app/orders${search}`} className="hdr-btn">🛒 Order Workflow →</Link>
         </div>
       </header>
 
