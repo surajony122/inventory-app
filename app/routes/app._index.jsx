@@ -403,7 +403,7 @@ function FulfillBadge({ s }) {
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function IndexPage() {
   const { products, orders, warehouse: initWh, productsError, ordersError } = useLoaderData();
-  const { search } = useLocation();
+  const { search: locationSearch } = useLocation();
   const submit = useSubmit();
 
   const [tab, setTab] = useState("dashboard");
@@ -893,7 +893,7 @@ export default function IndexPage() {
         </div>
 
         <div className="hd-right">
-          <Link to={`/app/orders${search}`} className="hdr-btn">🛒 Order Workflow →</Link>
+          <Link to={`/app/orders${locationSearch}`} className="hdr-btn">🛒 Order Workflow →</Link>
         </div>
       </header>
 
