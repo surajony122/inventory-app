@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLoaderData, useSubmit, Link, useLocation } from "react-router";
+import { useLoaderData, useSubmit, Link, useLocation, useNavigation, useActionData } from "react-router";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 
@@ -318,21 +318,39 @@ function getSingleActions(status){
   }
 }
 
-// ── LOADER ────────────────────────────────────────────────────────────────────
-export const loader = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
+// ── HELPERS (loader-side) ─────────────────────────────────────────────────────
+function buildOrdersFromCache(cached, states) {
+  return cached.map(c=>{
+    const st=states.find(s=>s.id===c.id);
+    const aging=c.createdAt?getAging(c.createdAt):0;
+    return {
+      shopifyId:c.id, id:c.name,
+      customer:c.customer||"Guest",
+      item:c.item||"—", sku:c.sku||"—", qty:c.qty||1,
+      imageUrl:c.imageUrl||null, lineItems:[],
+      orderDate:c.orderDate||"—", createdAt:c.createdAt||null,
+      priority:c.priority||"Medium",
+      status:st?.status||"Awaiting Inventory Check",
+      owner:st?.owner||"Inventory - Queue",
+      handoffs:JSON.parse(st?.handoffs||"[]"),
+      aging, note:st?.note||"", shopifyNote:c.shopifyNote||"",
+      paymentStatus:c.paymentStatus||"N/A", fulfillStatus:"UNFULFILLED",
+    };
+  });
+}
 
+async function fetchAndCacheFromShopify(admin) {
+  const PAY_MAP={PAID:"Paid",PENDING:"Payment pending",AUTHORIZED:"Authorized",PARTIALLY_PAID:"Partially paid",REFUNDED:"Refunded",VOIDED:"Voided"};
   let rawOrders=[], ordersError=null;
   try{
-    let cursor=null, hasNext=true;
+    let cursor=null,hasNext=true;
     while(hasNext){
-      const resp = await admin.graphql(`
+      const resp=await admin.graphql(`
         query($cursor:String){
           orders(first:250,after:$cursor,sortKey:CREATED_AT,reverse:true){
             pageInfo{ hasNextPage endCursor }
             edges{ node{
-              id name createdAt displayFinancialStatus displayFulfillmentStatus
-              totalPriceSet{ shopMoney{ amount currencyCode } }
+              id name createdAt displayFinancialStatus
               customer{ firstName lastName }
               lineItems(first:3){ edges{ node{ title sku quantity image{ url } } } }
               tags note
@@ -341,25 +359,23 @@ export const loader = async ({ request }) => {
         }
       `,{variables:{cursor}});
       const json=await resp.json();
-      if(json.errors?.length) throw new Error(json.errors.map(e=>e.message).join(" | "));
+      if(json.errors?.length) throw new Error(json.errors[0].message);
       const pg=json.data?.orders; if(!pg) break;
       rawOrders=rawOrders.concat(pg.edges.map(e=>e.node));
       hasNext=pg.pageInfo.hasNextPage; cursor=pg.pageInfo.endCursor;
     }
   }catch(err){
-    ordersError=err.message||"Orders unavailable";
-    // Fallback without customer field
+    ordersError=err.message||"Shopify API error";
+    // Fallback: no customer field
     try{
-      rawOrders=[];
-      let cursor=null,hasNext=true;
+      rawOrders=[]; let cursor=null,hasNext=true;
       while(hasNext){
         const resp=await admin.graphql(`
           query($cursor:String){
             orders(first:250,after:$cursor,sortKey:CREATED_AT,reverse:true){
               pageInfo{ hasNextPage endCursor }
               edges{ node{
-                id name createdAt displayFinancialStatus displayFulfillmentStatus
-                totalPriceSet{ shopMoney{ amount currencyCode } }
+                id name createdAt displayFinancialStatus
                 lineItems(first:3){ edges{ node{ title sku quantity image{ url } } } }
                 tags note
               }}
@@ -367,25 +383,20 @@ export const loader = async ({ request }) => {
           }
         `,{variables:{cursor}});
         const json=await resp.json();
-        if(json.errors?.length) throw new Error(json.errors.map(e=>e.message).join(" | "));
+        if(json.errors?.length) throw new Error(json.errors[0].message);
         const pg=json.data?.orders; if(!pg) break;
         rawOrders=rawOrders.concat(pg.edges.map(e=>e.node));
         hasNext=pg.pageInfo.hasNextPage; cursor=pg.pageInfo.endCursor;
       }
       ordersError=null;
-    }catch(_){ /* keep original error */ }
+    }catch(_){}
   }
 
-  const ids=rawOrders.map(o=>o.id);
-  const states=ids.length ? await prisma.orderWorkflow.findMany({where:{id:{in:ids}}}) : [];
-
-  // Cache order data for team workflow page (no Shopify auth needed)
   if(rawOrders.length>0){
-    const cacheOps=rawOrders.map(o=>{
+    await Promise.all(rawOrders.map(o=>{
       const li=o.lineItems.edges[0]?.node;
       const tags=(o.tags||[]).map(s=>s.toLowerCase());
       const priority=tags.includes("priority:high")||tags.includes("urgent")?"High":tags.includes("priority:low")?"Low":"Medium";
-      const payMap={PAID:"Paid",PENDING:"Payment pending",AUTHORIZED:"Authorized",PARTIALLY_PAID:"Partially paid",REFUNDED:"Refunded",VOIDED:"Voided"};
       return prisma.orderCache.upsert({
         where:{id:o.id},
         update:{
@@ -393,9 +404,8 @@ export const loader = async ({ request }) => {
           customer:o.customer?`${o.customer.firstName} ${o.customer.lastName}`.trim():"Guest",
           item:li?.title||"—",sku:li?.sku||"—",qty:li?.quantity||1,
           imageUrl:li?.image?.url||null,
-          orderDate:new Date(o.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"}),
-          createdAt:o.createdAt,
-          paymentStatus:payMap[o.displayFinancialStatus]||o.displayFinancialStatus||"N/A",
+          orderDate:fmtDate(o.createdAt),createdAt:o.createdAt,
+          paymentStatus:PAY_MAP[o.displayFinancialStatus]||"N/A",
           priority,shopifyNote:o.note||"",
         },
         create:{
@@ -403,41 +413,46 @@ export const loader = async ({ request }) => {
           customer:o.customer?`${o.customer.firstName} ${o.customer.lastName}`.trim():"Guest",
           item:li?.title||"—",sku:li?.sku||"—",qty:li?.quantity||1,
           imageUrl:li?.image?.url||null,
-          orderDate:new Date(o.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"}),
-          createdAt:o.createdAt,
-          paymentStatus:payMap[o.displayFinancialStatus]||o.displayFinancialStatus||"N/A",
+          orderDate:fmtDate(o.createdAt),createdAt:o.createdAt,
+          paymentStatus:PAY_MAP[o.displayFinancialStatus]||"N/A",
           priority,shopifyNote:o.note||"",
         },
       });
-    });
-    Promise.all(cacheOps).catch(()=>{});
+    }));
   }
+  return { count: rawOrders.length, ordersError };
+}
 
-  const orders=rawOrders.map(o=>{
-    const st=states.find(s=>s.id===o.id);
-    const li=o.lineItems.edges[0]?.node;
-    return {
-      shopifyId:o.id, id:o.name,
-      customer:o.customer?`${o.customer.firstName} ${o.customer.lastName}`.trim():"Guest",
-      item:li?.title||"—", sku:li?.sku||"—", qty:li?.quantity||1,
-      imageUrl:li?.image?.url||null, lineItems:o.lineItems.edges.map(e=>e.node),
-      orderDate:fmtDate(o.createdAt), createdAt:o.createdAt,
-      priority:getPriority(o.tags), status:st?.status||"Awaiting Inventory Check",
-      owner:st?.owner||"Inventory - Queue", handoffs:JSON.parse(st?.handoffs||"[]"),
-      aging:getAging(o.createdAt), note:st?.note||"", shopifyNote:o.note||"",
-      paymentStatus:fmtPay(o.displayFinancialStatus),
-      fulfillStatus:o.displayFulfillmentStatus||"UNFULFILLED",
-    };
-  });
+// ── LOADER — reads from local cache (instant) ─────────────────────────────────
+export const loader = async ({ request }) => {
+  await authenticate.admin(request);
 
-  return { orders, ordersError };
+  const [cached, states] = await Promise.all([
+    prisma.orderCache.findMany({ orderBy:{ updatedAt:"desc" } }),
+    prisma.orderWorkflow.findMany(),
+  ]);
+
+  const orders = buildOrdersFromCache(cached, states);
+  const lastSync = cached.length>0 ? cached[0].updatedAt?.toISOString()||null : null;
+  return { orders, lastSync, isEmpty: cached.length===0 };
 };
 
 // ── ACTION ────────────────────────────────────────────────────────────────────
 export const action = async ({ request }) => {
-  await authenticate.admin(request);
+  const { admin } = await authenticate.admin(request);
   const fd=await request.formData();
   const type=fd.get("type");
+
+  if(type==="sync"){
+    const result = await fetchAndCacheFromShopify(admin);
+    // Refresh orders from cache and return
+    const [cached,states]=await Promise.all([
+      prisma.orderCache.findMany({orderBy:{updatedAt:"desc"}}),
+      prisma.orderWorkflow.findMany(),
+    ]);
+    const orders=buildOrdersFromCache(cached,states);
+    return {ok:true,synced:result.count,orders,ordersError:result.ordersError,lastSync:new Date().toISOString()};
+  }
 
   if(type==="update"){
     const id=fd.get("id"), ns=fd.get("status"), no=fd.get("owner"), hfFrom=fd.get("hfFrom"), hfTo=fd.get("hfTo"), note=fd.get("note");
@@ -486,18 +501,21 @@ export const action = async ({ request }) => {
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function OrdersPage(){
-  const {orders:init, ordersError}=useLoaderData();
+  const {orders:init, lastSync:initLastSync, isEmpty}=useLoaderData();
   const submit=useSubmit();
   const { search }=useLocation();
+  const navigation=useNavigation();
 
   const [orders,      setOrders]      = useState(init);
+  const [lastSync,    setLastSync]    = useState(initLastSync);
+  const [syncing,     setSyncing]     = useState(false);
   const [role,        setRole]        = useState("admin");
   const [query,       setQuery]       = useState("");
   const [statusF,     setStatusF]     = useState("all");
   const [priorityF,   setPriorityF]   = useState("all");
   const [payF,        setPayF]        = useState("all");
-  const [activeSKU,   setActiveSKU]   = useState(null);   // production SKU filter
-  const [skuView,     setSkuView]     = useState("all");   // all / queued / active
+  const [activeSKU,   setActiveSKU]   = useState(null);
+  const [skuView,     setSkuView]     = useState("all");
   const [selIds,      setSelIds]      = useState(new Set());
   const [page,        setPage]        = useState(1);
   const [selected,    setSelected]    = useState(null);
@@ -505,12 +523,29 @@ export default function OrdersPage(){
   const [bulkPending, setBulkPending] = useState(null);
   const [toast,       setToast]       = useState(null);
 
-  // Sync orders when loader data refreshes
   useEffect(()=>{ setOrders(init); },[init]);
+
+  const actionData = useActionData();
+  useEffect(()=>{
+    if(!actionData) return;
+    if(actionData.orders) setOrders(actionData.orders);
+    if(actionData.lastSync) setLastSync(actionData.lastSync);
+    if(actionData.synced!=null){
+      setSyncing(false);
+      if(actionData.ordersError) showToast(`Sync error: ${actionData.ordersError}`,"error");
+      else showToast(`Synced ${actionData.synced} orders from Shopify`,"success");
+    }
+  },[actionData]);
 
   function showToast(msg, type=""){
     setToast({msg,type});
     setTimeout(()=>setToast(null),3000);
+  }
+
+  function doSync(){
+    setSyncing(true);
+    const fd=new FormData(); fd.append("type","sync");
+    submit(fd,{method:"POST"});
   }
 
   function changeRole(r){
@@ -881,15 +916,23 @@ export default function OrdersPage(){
         </div>
 
         <div className="hd-right">
+          <button className="hd-link" onClick={doSync} disabled={syncing} style={{cursor:syncing?"not-allowed":"pointer"}}>
+            {syncing ? "Syncing…" : "⟳ Sync Orders"}
+          </button>
           <Link to={`/app${search}`} className="hd-link">← Dashboard</Link>
         </div>
       </header>
 
       <main className="pg-main">
-        {/* Error banner */}
-        {ordersError&&(
+        {/* Empty / stale banner */}
+        {isEmpty&&(
           <div style={{background:"var(--gold-bg)",border:"1px solid var(--gold-border)",borderRadius:"var(--r-md)",padding:"12px 16px",marginBottom:16,fontSize:13,color:"var(--gold-text)"}}>
-            <strong>⚠ API Error:</strong> {ordersError}
+            <strong>No orders synced yet.</strong> Click <strong>⟳ Sync Orders</strong> in the header to pull orders from Shopify. This only takes a moment and updates both this page and the team workflow page.
+          </div>
+        )}
+        {lastSync&&!isEmpty&&(
+          <div style={{fontSize:11,color:"var(--text-3)",marginBottom:12,fontFamily:"'DM Mono',monospace"}}>
+            Last synced: {new Date(lastSync).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}
           </div>
         )}
 

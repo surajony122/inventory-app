@@ -893,6 +893,7 @@ export default function IndexPage() {
         </div>
 
         <div className="hd-right">
+          <a href="/workflow" target="_blank" rel="noreferrer" className="hdr-btn" style={{textDecoration:"none"}}>👥 Team Workflow</a>
           <Link to={`/app/orders${locationSearch}`} className="hdr-btn">🛒 Order Workflow →</Link>
         </div>
       </header>
