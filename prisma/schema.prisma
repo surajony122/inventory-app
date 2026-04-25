@@ -51,3 +51,19 @@ model Inventory {
   updatedAt     DateTime @updatedAt
 }
 
+model OrderCache {
+  id            String   @id // Shopify Order GID
+  name          String   // e.g., #1001
+  customer      String?
+  item          String?
+  sku           String?
+  qty           Int      @default(1)
+  imageUrl      String?
+  orderDate     String?
+  createdAt     String?  // ISO string for aging calc
+  paymentStatus String?
+  priority      String   @default("Medium")
+  shopifyNote   String?
+  updatedAt     DateTime @updatedAt
+}
+

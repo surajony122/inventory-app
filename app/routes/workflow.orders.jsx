@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLoaderData, useSubmit, Link, useLocation } from "react-router";
-import { authenticate } from "../shopify.server";
+import { useLoaderData, useSubmit, redirect } from "react-router";
+import { wfCookie } from "../workflow.cookie.server";
 import prisma from "../db.server";
 
 // ── CSS ───────────────────────────────────────────────────────────────────────
@@ -66,7 +66,6 @@ html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text
 .alert-item{background:var(--rose-bg);border:1px solid rgba(154,42,58,0.15);border-radius:var(--r-md);padding:10px 12px;margin-bottom:7px;cursor:pointer;transition:opacity 0.12s;display:flex;align-items:center;gap:10px;}
 .alert-item:hover{opacity:0.82;}
 .alert-item:last-child{margin-bottom:0;}
-.alert-thumb{width:32px;height:32px;border-radius:6px;object-fit:cover;flex-shrink:0;border:1px solid var(--border);}
 .alert-thumb-ph{width:32px;height:32px;border-radius:6px;background:rgba(154,42,58,0.12);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:14px;color:var(--rose-text);}
 .alert-info{flex:1;min-width:0;}
 .alert-id{font-size:12px;font-weight:500;color:var(--rose-text);}
@@ -144,7 +143,6 @@ html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text
 input[type=checkbox]{width:14px;height:14px;accent-color:var(--blue);cursor:pointer;display:block;}
 
 /* CELLS */
-.thumb{width:38px;height:38px;border-radius:7px;object-fit:cover;border:1px solid var(--border);display:block;background:var(--surface-3);}
 .thumb-ph{width:38px;height:38px;border-radius:7px;background:var(--surface-3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--text-3);}
 .ord-id{font-weight:600;font-size:13px;font-family:'Cormorant Garamond',serif;}
 .ord-sid{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-3);margin-top:1px;}
@@ -182,7 +180,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--blue);cursor:poin
 /* MODAL */
 .overlay{position:fixed;inset:0;background:rgba(35,31,23,0.5);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px;backdrop-filter:blur(3px);animation:fadeIn 0.15s ease;}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.modal{background:var(--surface);border-radius:var(--r-xl);width:100%;max-width:680px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:slideUp 0.18s ease;}
+.modal{background:var(--surface);border-radius:var(--r-xl);width:100%;max-width:640px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:slideUp 0.18s ease;}
 @keyframes slideUp{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
 .modal-hdr{padding:22px 24px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;position:sticky;top:0;background:var(--surface);z-index:1;}
 .modal-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;}
@@ -190,8 +188,6 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--blue);cursor:poin
 .modal-x{background:var(--surface-2);border:none;border-radius:7px;width:28px;height:28px;cursor:pointer;font-size:15px;color:var(--text-2);display:flex;align-items:center;justify-content:center;transition:background 0.12s;}
 .modal-x:hover{background:var(--surface-3);}
 .modal-body{padding:20px 24px;}
-.modal-img{width:100%;height:200px;object-fit:cover;border-radius:var(--r-md);margin-bottom:18px;border:1px solid var(--border);}
-.modal-img-ph{width:100%;height:130px;border-radius:var(--r-md);margin-bottom:18px;border:1px solid var(--border);background:var(--surface-3);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:44px;color:var(--border-strong);}
 .m-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
 .m-lbl{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:4px;}
 .m-val{font-size:13px;font-weight:500;}
@@ -220,19 +216,8 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--blue);cursor:poin
 .bm-id{font-weight:600;min-width:70px;font-family:'Cormorant Garamond',serif;}
 .bm-item{color:var(--text-2);flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
 
-/* BOTTOM INFO */
-.info-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-top:20px;}
-.info-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;}
-.info-title{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600;margin-bottom:14px;}
-.flow-row{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:12px;}
-.flow-node{font-size:10px;font-weight:500;padding:4px 10px;border-radius:20px;background:var(--surface-2);border:1px solid var(--border-md);color:var(--text-2);}
-.flow-arr{font-size:12px;color:var(--text-3);}
-.step{display:flex;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:7px;background:var(--surface-2);}
-.step:last-child{margin-bottom:0;}
-.step-n{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:var(--gold);min-width:18px;line-height:1.2;}
-.step-t{font-size:12px;color:var(--text-2);line-height:1.5;}
-.pri-row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
-.pri-code{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-3);}
+/* STALE BANNER */
+.stale-banner{background:var(--gold-bg);border:1px solid var(--gold-border);border-radius:var(--r-md);padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--gold-text);}
 
 /* TOAST */
 .toast-wrap{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:999;pointer-events:none;}
@@ -241,7 +226,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--blue);cursor:poin
 .toast.t-error{background:var(--rose);}
 @keyframes toastIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
 
-@media(max-width:900px){.stats-row{grid-template-columns:repeat(3,1fr);}.info-grid{grid-template-columns:1fr;}.top-row{flex-direction:column;}.alerts-panel{width:100%;}}
+@media(max-width:900px){.stats-row{grid-template-columns:repeat(3,1fr);}.top-row{flex-direction:column;}.alerts-panel{width:100%;}}
 @media(max-width:600px){.pg-main{padding:16px;}.pg-header{padding:0 16px;}.stats-row{grid-template-columns:repeat(2,1fr);}}
 `;
 
@@ -258,7 +243,7 @@ const STATUS_BADGE = {
 };
 const PAY_BADGE = { Paid:"b-teal","Payment pending":"b-gold",Authorized:"b-cyan","Partially paid":"b-orange" };
 const PRI_BADGE = { High:"b-pri-h",Medium:"b-pri-m",Low:"b-pri-l" };
-const SKU_CHIP  = {
+const SKU_CHIP = {
   "Sent to Production":{cls:"b-orange",lbl:"Queued"},
   "In Production":{cls:"b-blue",lbl:"Active"},
   "Production Complete":{cls:"b-violet",lbl:"Done"},
@@ -283,19 +268,8 @@ const BULK_DEFS = [
 ];
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
-function getPriority(tags=[]) {
-  const t=(tags||[]).map(s=>s.toLowerCase());
-  if(t.includes("priority:high")||t.includes("urgent")) return "High";
-  if(t.includes("priority:low")) return "Low";
-  return "Medium";
-}
 function getAging(d){ return Math.floor((Date.now()-new Date(d).getTime())/86400000); }
 function fmtDate(d){ return new Date(d).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"}); }
-function fmtPay(s){
-  if(!s) return "N/A";
-  const m={PAID:"Paid",PENDING:"Payment pending",AUTHORIZED:"Authorized",PARTIALLY_PAID:"Partially paid",REFUNDED:"Refunded",VOIDED:"Voided"};
-  return m[s]||s.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
-}
 function getAvailBulk(ids,orders){
   const sel=orders.filter(o=>ids.includes(o.shopifyId));
   const ss=[...new Set(sel.map(o=>o.status))];
@@ -320,126 +294,54 @@ function getSingleActions(status){
 
 // ── LOADER ────────────────────────────────────────────────────────────────────
 export const loader = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
+  // PIN auth check
+  const cookieHeader = request.headers.get("Cookie");
+  const val = await wfCookie.parse(cookieHeader);
+  if (val !== "authenticated") return redirect("/workflow");
 
-  let rawOrders=[], ordersError=null;
-  try{
-    let cursor=null, hasNext=true;
-    while(hasNext){
-      const resp = await admin.graphql(`
-        query($cursor:String){
-          orders(first:250,after:$cursor,sortKey:CREATED_AT,reverse:true){
-            pageInfo{ hasNextPage endCursor }
-            edges{ node{
-              id name createdAt displayFinancialStatus displayFulfillmentStatus
-              totalPriceSet{ shopMoney{ amount currencyCode } }
-              customer{ firstName lastName }
-              lineItems(first:3){ edges{ node{ title sku quantity image{ url } } } }
-              tags note
-            }}
-          }
-        }
-      `,{variables:{cursor}});
-      const json=await resp.json();
-      if(json.errors?.length) throw new Error(json.errors.map(e=>e.message).join(" | "));
-      const pg=json.data?.orders; if(!pg) break;
-      rawOrders=rawOrders.concat(pg.edges.map(e=>e.node));
-      hasNext=pg.pageInfo.hasNextPage; cursor=pg.pageInfo.endCursor;
-    }
-  }catch(err){
-    ordersError=err.message||"Orders unavailable";
-    // Fallback without customer field
-    try{
-      rawOrders=[];
-      let cursor=null,hasNext=true;
-      while(hasNext){
-        const resp=await admin.graphql(`
-          query($cursor:String){
-            orders(first:250,after:$cursor,sortKey:CREATED_AT,reverse:true){
-              pageInfo{ hasNextPage endCursor }
-              edges{ node{
-                id name createdAt displayFinancialStatus displayFulfillmentStatus
-                totalPriceSet{ shopMoney{ amount currencyCode } }
-                lineItems(first:3){ edges{ node{ title sku quantity image{ url } } } }
-                tags note
-              }}
-            }
-          }
-        `,{variables:{cursor}});
-        const json=await resp.json();
-        if(json.errors?.length) throw new Error(json.errors.map(e=>e.message).join(" | "));
-        const pg=json.data?.orders; if(!pg) break;
-        rawOrders=rawOrders.concat(pg.edges.map(e=>e.node));
-        hasNext=pg.pageInfo.hasNextPage; cursor=pg.pageInfo.endCursor;
-      }
-      ordersError=null;
-    }catch(_){ /* keep original error */ }
-  }
+  // Read from local DB only (fast, no Shopify API)
+  const [cached, states] = await Promise.all([
+    prisma.orderCache.findMany({ orderBy: { updatedAt: "desc" } }),
+    prisma.orderWorkflow.findMany(),
+  ]);
 
-  const ids=rawOrders.map(o=>o.id);
-  const states=ids.length ? await prisma.orderWorkflow.findMany({where:{id:{in:ids}}}) : [];
-
-  // Cache order data for team workflow page (no Shopify auth needed)
-  if(rawOrders.length>0){
-    const cacheOps=rawOrders.map(o=>{
-      const li=o.lineItems.edges[0]?.node;
-      const tags=(o.tags||[]).map(s=>s.toLowerCase());
-      const priority=tags.includes("priority:high")||tags.includes("urgent")?"High":tags.includes("priority:low")?"Low":"Medium";
-      const payMap={PAID:"Paid",PENDING:"Payment pending",AUTHORIZED:"Authorized",PARTIALLY_PAID:"Partially paid",REFUNDED:"Refunded",VOIDED:"Voided"};
-      return prisma.orderCache.upsert({
-        where:{id:o.id},
-        update:{
-          name:o.name,
-          customer:o.customer?`${o.customer.firstName} ${o.customer.lastName}`.trim():"Guest",
-          item:li?.title||"—",sku:li?.sku||"—",qty:li?.quantity||1,
-          imageUrl:li?.image?.url||null,
-          orderDate:new Date(o.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"}),
-          createdAt:o.createdAt,
-          paymentStatus:payMap[o.displayFinancialStatus]||o.displayFinancialStatus||"N/A",
-          priority,shopifyNote:o.note||"",
-        },
-        create:{
-          id:o.id,name:o.name,
-          customer:o.customer?`${o.customer.firstName} ${o.customer.lastName}`.trim():"Guest",
-          item:li?.title||"—",sku:li?.sku||"—",qty:li?.quantity||1,
-          imageUrl:li?.image?.url||null,
-          orderDate:new Date(o.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"}),
-          createdAt:o.createdAt,
-          paymentStatus:payMap[o.displayFinancialStatus]||o.displayFinancialStatus||"N/A",
-          priority,shopifyNote:o.note||"",
-        },
-      });
-    });
-    Promise.all(cacheOps).catch(()=>{});
-  }
-
-  const orders=rawOrders.map(o=>{
-    const st=states.find(s=>s.id===o.id);
-    const li=o.lineItems.edges[0]?.node;
+  const orders = cached.map(c => {
+    const st = states.find(s => s.id === c.id);
+    const aging = c.createdAt ? getAging(c.createdAt) : 0;
     return {
-      shopifyId:o.id, id:o.name,
-      customer:o.customer?`${o.customer.firstName} ${o.customer.lastName}`.trim():"Guest",
-      item:li?.title||"—", sku:li?.sku||"—", qty:li?.quantity||1,
-      imageUrl:li?.image?.url||null, lineItems:o.lineItems.edges.map(e=>e.node),
-      orderDate:fmtDate(o.createdAt), createdAt:o.createdAt,
-      priority:getPriority(o.tags), status:st?.status||"Awaiting Inventory Check",
-      owner:st?.owner||"Inventory - Queue", handoffs:JSON.parse(st?.handoffs||"[]"),
-      aging:getAging(o.createdAt), note:st?.note||"", shopifyNote:o.note||"",
-      paymentStatus:fmtPay(o.displayFinancialStatus),
-      fulfillStatus:o.displayFulfillmentStatus||"UNFULFILLED",
+      shopifyId: c.id,
+      id: c.name,
+      customer: c.customer || "Guest",
+      item: c.item || "—",
+      sku: c.sku || "—",
+      qty: c.qty || 1,
+      imageUrl: c.imageUrl || null,
+      orderDate: c.orderDate || (c.createdAt ? fmtDate(c.createdAt) : "—"),
+      createdAt: c.createdAt || null,
+      priority: c.priority || "Medium",
+      status: st?.status || "Awaiting Inventory Check",
+      owner: st?.owner || "Inventory - Queue",
+      handoffs: JSON.parse(st?.handoffs || "[]"),
+      aging,
+      note: st?.note || "",
+      shopifyNote: c.shopifyNote || "",
+      paymentStatus: c.paymentStatus || "N/A",
     };
   });
 
-  return { orders, ordersError };
+  return { orders, isEmpty: cached.length === 0 };
 };
 
 // ── ACTION ────────────────────────────────────────────────────────────────────
 export const action = async ({ request }) => {
-  await authenticate.admin(request);
-  const fd=await request.formData();
-  const type=fd.get("type");
+  const cookieHeader = request.headers.get("Cookie");
+  const val = await wfCookie.parse(cookieHeader);
+  if (val !== "authenticated") return redirect("/workflow");
 
-  if(type==="update"){
+  const fd = await request.formData();
+  const type = fd.get("type");
+
+  if (type === "update") {
     const id=fd.get("id"), ns=fd.get("status"), no=fd.get("owner"), hfFrom=fd.get("hfFrom"), hfTo=fd.get("hfTo"), note=fd.get("note");
     const ex=await prisma.orderWorkflow.findUnique({where:{id}});
     const hfs=JSON.parse(ex?.handoffs||"[]");
@@ -452,7 +354,7 @@ export const action = async ({ request }) => {
     return {ok:true};
   }
 
-  if(type==="bulk"){
+  if (type === "bulk") {
     const ids=JSON.parse(fd.get("ids")||"[]"), ns=fd.get("status"), no=fd.get("owner"), hfFrom=fd.get("hfFrom"), hfTo=fd.get("hfTo");
     for(const id of ids){
       const ex=await prisma.orderWorkflow.findUnique({where:{id}});
@@ -465,7 +367,7 @@ export const action = async ({ request }) => {
     return {ok:true};
   }
 
-  if(type==="reset"){
+  if (type === "reset") {
     const id=fd.get("id");
     await prisma.orderWorkflow.upsert({
       where:{id},
@@ -475,29 +377,32 @@ export const action = async ({ request }) => {
     return {ok:true};
   }
 
-  if(type==="note"){
+  if (type === "note") {
     const id=fd.get("id"),note=fd.get("note")||"";
     await prisma.orderWorkflow.upsert({where:{id},update:{note},create:{id,note,status:"Awaiting Inventory Check",owner:"Inventory - Queue",handoffs:"[]"}});
     return {ok:true};
+  }
+
+  if (type === "logout") {
+    const cookieStr = await wfCookie.serialize("", { maxAge: 0 });
+    return redirect("/workflow", { headers: { "Set-Cookie": cookieStr } });
   }
 
   return {ok:false};
 };
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
-export default function OrdersPage(){
-  const {orders:init, ordersError}=useLoaderData();
-  const submit=useSubmit();
-  const { search }=useLocation();
+export default function WorkflowOrders() {
+  const { orders: init, isEmpty } = useLoaderData();
+  const submit = useSubmit();
 
   const [orders,      setOrders]      = useState(init);
   const [role,        setRole]        = useState("admin");
   const [query,       setQuery]       = useState("");
   const [statusF,     setStatusF]     = useState("all");
   const [priorityF,   setPriorityF]   = useState("all");
-  const [payF,        setPayF]        = useState("all");
-  const [activeSKU,   setActiveSKU]   = useState(null);   // production SKU filter
-  const [skuView,     setSkuView]     = useState("all");   // all / queued / active
+  const [activeSKU,   setActiveSKU]   = useState(null);
+  const [skuView,     setSkuView]     = useState("all");
   const [selIds,      setSelIds]      = useState(new Set());
   const [page,        setPage]        = useState(1);
   const [selected,    setSelected]    = useState(null);
@@ -505,61 +410,59 @@ export default function OrdersPage(){
   const [bulkPending, setBulkPending] = useState(null);
   const [toast,       setToast]       = useState(null);
 
-  // Sync orders when loader data refreshes
-  useEffect(()=>{ setOrders(init); },[init]);
+  useEffect(() => { setOrders(init); }, [init]);
 
-  function showToast(msg, type=""){
+  function showToast(msg, type="") {
     setToast({msg,type});
-    setTimeout(()=>setToast(null),3000);
+    setTimeout(()=>setToast(null), 3000);
   }
 
-  function changeRole(r){
+  function changeRole(r) {
     setRole(r); setActiveSKU(null); setSkuView("all"); setSelIds(new Set()); setPage(1);
-    setQuery(""); setStatusF("all"); setPriorityF("all"); setPayF("all");
+    setQuery(""); setStatusF("all"); setPriorityF("all");
   }
 
-  // ── visible orders ────────────────────────────────────────────────────────
-  const visible=useMemo(()=>{
-    return orders.filter(o=>{
-      if(!ROLE_FILTER[role](o)) return false;
-      if(activeSKU&&o.sku!==activeSKU) return false;
-      if(role==="production"&&skuView==="queued"&&o.status!=="Sent to Production") return false;
-      if(role==="production"&&skuView==="active"&&o.status!=="In Production") return false;
-      if(statusF!=="all"&&o.status!==statusF) return false;
-      if(priorityF!=="all"&&o.priority!==priorityF) return false;
-      if(payF!=="all"&&o.paymentStatus!==payF) return false;
-      if(query){
-        const q=query.toLowerCase();
-        if(![o.id,o.customer,o.item,o.sku,o.shopifyId].join(" ").toLowerCase().includes(q)) return false;
+  // ── visible orders ──────────────────────────────────────────────────────
+  const visible = useMemo(() => {
+    return orders.filter(o => {
+      if (!ROLE_FILTER[role](o)) return false;
+      if (activeSKU && o.sku !== activeSKU) return false;
+      if (role==="production" && skuView==="queued" && o.status!=="Sent to Production") return false;
+      if (role==="production" && skuView==="active" && o.status!=="In Production") return false;
+      if (statusF!=="all" && o.status!==statusF) return false;
+      if (priorityF!=="all" && o.priority!==priorityF) return false;
+      if (query) {
+        const q = query.toLowerCase();
+        if (![o.id,o.customer,o.item,o.sku].join(" ").toLowerCase().includes(q)) return false;
       }
       return true;
     });
-  },[orders,role,activeSKU,skuView,statusF,priorityF,payF,query]);
+  }, [orders,role,activeSKU,skuView,statusF,priorityF,query]);
 
-  const totalPages=Math.max(1,Math.ceil(visible.length/PAGE_SIZE));
-  const curPage=Math.min(page,totalPages);
-  const pageItems=visible.slice((curPage-1)*PAGE_SIZE,curPage*PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(visible.length/PAGE_SIZE));
+  const curPage = Math.min(page, totalPages);
+  const pageItems = visible.slice((curPage-1)*PAGE_SIZE, curPage*PAGE_SIZE);
 
-  // ── stats (role-aware) ────────────────────────────────────────────────────
-  const roleOrders=useMemo(()=>orders.filter(o=>ROLE_FILTER[role](o)),[orders,role]);
-  const delayed=roleOrders.filter(o=>o.aging>=2);
+  // ── stats ───────────────────────────────────────────────────────────────
+  const roleOrders = useMemo(()=>orders.filter(o=>ROLE_FILTER[role](o)), [orders,role]);
+  const delayed = roleOrders.filter(o=>o.aging>=2);
 
   const stats = role==="production" ? {
-    total:    roleOrders.length,
-    units:    roleOrders.reduce((s,o)=>s+o.qty,0),
-    queued:   roleOrders.filter(o=>o.status==="Sent to Production").length,
-    active:   roleOrders.filter(o=>o.status==="In Production").length,
-    delayed:  delayed.length,
+    total:   roleOrders.length,
+    units:   roleOrders.reduce((s,o)=>s+o.qty, 0),
+    queued:  roleOrders.filter(o=>o.status==="Sent to Production").length,
+    active:  roleOrders.filter(o=>o.status==="In Production").length,
+    delayed: delayed.length,
   } : {
-    total:    roleOrders.length,
-    inv:      roleOrders.filter(o=>o.status==="Awaiting Inventory Check").length,
-    prod:     roleOrders.filter(o=>PROD_STATUSES.includes(o.status)).length,
-    disp:     roleOrders.filter(o=>o.status==="Ready for Dispatch").length,
-    delayed:  delayed.length,
+    total:   roleOrders.length,
+    inv:     roleOrders.filter(o=>o.status==="Awaiting Inventory Check").length,
+    prod:    roleOrders.filter(o=>PROD_STATUSES.includes(o.status)).length,
+    disp:    roleOrders.filter(o=>o.status==="Ready for Dispatch").length,
+    delayed: delayed.length,
   };
 
-  // ── SKU production board data ─────────────────────────────────────────────
-  const skuGroups=useMemo(()=>{
+  // ── SKU board data ──────────────────────────────────────────────────────
+  const skuGroups = useMemo(() => {
     const map={};
     orders.filter(o=>PROD_STATUSES.includes(o.status)).forEach(o=>{
       if(!map[o.sku]) map[o.sku]={sku:o.sku,item:o.item,totalQty:0,n:0,ss:{},imageUrl:o.imageUrl};
@@ -568,14 +471,14 @@ export default function OrdersPage(){
       if(!map[o.sku].imageUrl&&o.imageUrl) map[o.sku].imageUrl=o.imageUrl;
     });
     return Object.values(map).sort((a,b)=>b.totalQty-a.totalQty);
-  },[orders]);
+  }, [orders]);
 
-  // ── mutations ─────────────────────────────────────────────────────────────
-  function doUpdate(o,ns,no,hf){
+  // ── mutations ────────────────────────────────────────────────────────────
+  function doUpdate(o,ns,no,hf) {
     const fd=new FormData();
     fd.append("type","update"); fd.append("id",o.shopifyId);
     fd.append("status",ns); fd.append("owner",no||"");
-    if(hf){ fd.append("hfFrom",hf.from); fd.append("hfTo",hf.to); }
+    if(hf){fd.append("hfFrom",hf.from);fd.append("hfTo",hf.to);}
     submit(fd,{method:"POST"});
     setOrders(prev=>prev.map(x=>x.shopifyId!==o.shopifyId?x:{
       ...x,status:ns,...(no?{owner:no}:{}),
@@ -585,18 +488,18 @@ export default function OrdersPage(){
     showToast("Order updated","success");
   }
 
-  function doBulk(def,ids){
+  function doBulk(def,ids) {
     const fd=new FormData();
     fd.append("type","bulk"); fd.append("ids",JSON.stringify(ids));
     fd.append("status",def.ns); if(def.no) fd.append("owner",def.no);
-    if(def.hf){ fd.append("hfFrom",def.hf.from); fd.append("hfTo",def.hf.to); }
+    if(def.hf){fd.append("hfFrom",def.hf.from);fd.append("hfTo",def.hf.to);}
     submit(fd,{method:"POST"});
     setOrders(prev=>prev.map(o=>!ids.includes(o.shopifyId)?o:{...o,status:def.ns,...(def.no?{owner:def.no}:{})}));
     setSelIds(new Set()); setBulkPending(null);
     showToast(`${ids.length} orders updated`,"success");
   }
 
-  function doReset(o){
+  function doReset(o) {
     if(!confirm("Reset this order to the beginning of the workflow?")) return;
     const fd=new FormData(); fd.append("type","reset"); fd.append("id",o.shopifyId);
     submit(fd,{method:"POST"});
@@ -605,13 +508,18 @@ export default function OrdersPage(){
     showToast("Workflow reset","success");
   }
 
-  function saveNote(o,note){
+  function saveNote(o,note) {
     const fd=new FormData(); fd.append("type","note"); fd.append("id",o.shopifyId); fd.append("note",note);
     submit(fd,{method:"POST"});
     setOrders(prev=>prev.map(x=>x.shopifyId!==o.shopifyId?x:{...x,note}));
   }
 
-  function exportCSV(){
+  function doLogout() {
+    const fd=new FormData(); fd.append("type","logout");
+    submit(fd,{method:"POST"});
+  }
+
+  function exportCSV() {
     const hdr=["Order","Customer","Item","SKU","Qty","Payment","Priority","Status","Owner","Aging(d)","Note"];
     const rows=visible.map(o=>[o.id,o.customer,o.item,o.sku,o.qty,o.paymentStatus,o.priority,o.status,o.owner,o.aging,(o.note||"").replace(/,/g," ")].map(v=>`"${v}"`).join(","));
     const csv=[hdr.join(","),...rows].join("\n");
@@ -620,21 +528,14 @@ export default function OrdersPage(){
     a.download=`orders-${new Date().toISOString().slice(0,10)}.csv`; a.click();
   }
 
-  // ── selection helpers ─────────────────────────────────────────────────────
+  // ── selection helpers ────────────────────────────────────────────────────
   const selArr=[...selIds];
   const availBulk=getAvailBulk(selArr,orders);
   const allPageSel=pageItems.length>0&&pageItems.every(o=>selIds.has(o.shopifyId));
   const someSel=pageItems.some(o=>selIds.has(o.shopifyId));
 
-  // ── Thumbnail ─────────────────────────────────────────────────────────────
-  function Thumb({src,size=38}){
-    const [err,setErr]=useState(false);
-    if(src&&!err) return <img src={src} className="thumb" style={{width:size,height:size}} alt="" onError={()=>setErr(true)}/>;
-    return <div className="thumb-ph" style={{width:size,height:size}}>◈</div>;
-  }
-
   // ── Pagination ────────────────────────────────────────────────────────────
-  function Pagination(){
+  function Pagination() {
     if(totalPages<=1) return null;
     const start=(curPage-1)*PAGE_SIZE, end=Math.min(start+pageItems.length,visible.length);
     const pages=[];
@@ -660,29 +561,22 @@ export default function OrdersPage(){
     );
   }
 
-  // ── SKU Production Board ──────────────────────────────────────────────────
-  function SKUBoard(){
+  // ── SKU Board ──────────────────────────────────────────────────────────
+  function SKUBoard() {
     if(role!=="production") return null;
     const maxQ=Math.max(...skuGroups.map(s=>s.totalQty),1);
     return(
       <div className="sku-section">
         <div className="section-bar">
-          <div className="section-title">
-            <span className="title-pip"></span>
-            SKU production queue
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-            <div className="view-toggle">
-              {["all","queued","active"].map(v=>(
-                <button key={v} className={`vbtn${skuView===v?" active":""}`}
-                  onClick={()=>setSkuView(v)}>
-                  {v[0].toUpperCase()+v.slice(1)}
-                </button>
-              ))}
-            </div>
+          <div className="section-title"><span className="title-pip"></span>SKU production queue</div>
+          <div className="view-toggle">
+            {["all","queued","active"].map(v=>(
+              <button key={v} className={`vbtn${skuView===v?" active":""}`} onClick={()=>setSkuView(v)}>
+                {v[0].toUpperCase()+v.slice(1)}
+              </button>
+            ))}
           </div>
         </div>
-
         {skuGroups.length===0 ? (
           <div style={{color:"var(--text-3)",fontSize:12,padding:"12px 0"}}>No SKUs in production queue.</div>
         ) : (
@@ -706,9 +600,7 @@ export default function OrdersPage(){
                     <div className="sku-name">{s.item}</div>
                     <div className="sku-big">{s.totalQty}</div>
                     <div className="sku-meta">units · {s.n} order{s.n!==1?"s":""}</div>
-                    <div className="sku-bar-bg">
-                      <div className={`sku-bar-fill${s.totalQty>=3?" hot":""}`} style={{width:`${pct}%`}}/>
-                    </div>
+                    <div className="sku-bar-bg"><div className={`sku-bar-fill${s.totalQty>=3?" hot":""}`} style={{width:`${pct}%`}}/></div>
                     <div className="sku-chips">{chips}</div>
                   </div>
                 </div>
@@ -716,7 +608,6 @@ export default function OrdersPage(){
             })}
           </div>
         )}
-
         <div style={{marginTop:12,fontSize:12,fontWeight:500,color:"var(--text-2)",display:"flex",alignItems:"center",gap:8}}>
           <span className="title-pip"></span>
           {activeSKU ? `Orders for ${activeSKU}` : "Production orders"}
@@ -725,8 +616,8 @@ export default function OrdersPage(){
     );
   }
 
-  // ── Order Modal ───────────────────────────────────────────────────────────
-  function OrderModal(){
+  // ── Order Modal ────────────────────────────────────────────────────────
+  function OrderModal() {
     const o=selected; if(!o) return null;
     const actions=getSingleActions(o.status);
     return(
@@ -740,10 +631,6 @@ export default function OrdersPage(){
             <button className="modal-x" onClick={()=>setSelected(null)}>✕</button>
           </div>
           <div className="modal-body">
-            {o.imageUrl
-              ? <img src={o.imageUrl} className="modal-img" alt={o.item} onError={e=>{e.target.style.display="none";}}/>
-              : <div className="modal-img-ph">◈</div>}
-
             <div className="m-grid">
               <div><div className="m-lbl">SKU</div><div className="m-val" style={{fontFamily:"'DM Mono',monospace",fontSize:11}}>{o.sku}</div></div>
               <div><div className="m-lbl">Quantity</div><div className="m-val">{o.qty}</div></div>
@@ -758,24 +645,6 @@ export default function OrdersPage(){
                 </div>
               )}
             </div>
-
-            {o.lineItems.length>0&&(
-              <div style={{marginBottom:18}}>
-                <div className="section-lbl">Line Items</div>
-                {o.lineItems.map((li,i)=>(
-                  <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 0",borderBottom:"1px solid var(--border)"}}>
-                    {li.image?.url
-                      ? <img src={li.image.url} style={{width:32,height:32,borderRadius:6,objectFit:"cover",border:"1px solid var(--border)"}} alt=""/>
-                      : <div style={{width:32,height:32,borderRadius:6,background:"var(--surface-3)",border:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"var(--text-3)"}}>◈</div>}
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:13,fontWeight:500,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{li.title}</div>
-                      <div style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"var(--text-3)"}}>{li.sku||"—"}</div>
-                    </div>
-                    <div style={{fontSize:12,fontWeight:600,color:"var(--text-2)"}}>×{li.quantity}</div>
-                  </div>
-                ))}
-              </div>
-            )}
 
             <div className="handoff-list">
               <div className="section-lbl">Handoff Timeline</div>
@@ -812,8 +681,8 @@ export default function OrdersPage(){
     );
   }
 
-  // ── Bulk Confirm Modal ────────────────────────────────────────────────────
-  function BulkModal(){
+  // ── Bulk Confirm Modal ─────────────────────────────────────────────────
+  function BulkModal() {
     if(!bulkPending) return null;
     const {def,ids}=bulkPending;
     const sel=orders.filter(o=>ids.includes(o.shopifyId));
@@ -851,9 +720,12 @@ export default function OrdersPage(){
     );
   }
 
-  // ── RENDER ─────────────────────────────────────────────────────────────────
+  // ── RENDER ─────────────────────────────────────────────────────────────
   return(
     <>
+      <link rel="preconnect" href="https://fonts.googleapis.com"/>
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap"/>
       <style dangerouslySetInnerHTML={{__html:CSS}}/>
 
       {/* Header */}
@@ -866,14 +738,13 @@ export default function OrdersPage(){
             </svg>
           </div>
           <span className="brand-name">Unniyarcha</span>
-          <span className="brand-tag">order workflow</span>
+          <span className="brand-tag">team workflow</span>
         </div>
 
         <div className="hd-mid">
           <div className="role-tabs">
             {ROLES.map(r=>(
-              <button key={r} className={`role-tab${r===role?" active":""}`}
-                onClick={()=>changeRole(r)}>
+              <button key={r} className={`role-tab${r===role?" active":""}`} onClick={()=>changeRole(r)}>
                 {r[0].toUpperCase()+r.slice(1)}
               </button>
             ))}
@@ -881,15 +752,15 @@ export default function OrdersPage(){
         </div>
 
         <div className="hd-right">
-          <Link to={`/app${search}`} className="hd-link">← Dashboard</Link>
+          <button className="hd-link" onClick={doLogout}>Sign Out</button>
         </div>
       </header>
 
       <main className="pg-main">
-        {/* Error banner */}
-        {ordersError&&(
-          <div style={{background:"var(--gold-bg)",border:"1px solid var(--gold-border)",borderRadius:"var(--r-md)",padding:"12px 16px",marginBottom:16,fontSize:13,color:"var(--gold-text)"}}>
-            <strong>⚠ API Error:</strong> {ordersError}
+        {/* Stale data warning */}
+        {isEmpty && (
+          <div className="stale-banner">
+            <strong>No order data found.</strong> Ask your admin to open the admin Order Workflow page to sync orders from Shopify. This page will update automatically after sync.
           </div>
         )}
 
@@ -913,7 +784,7 @@ export default function OrdersPage(){
             </div>
           )}
 
-          {/* Alerts panel — delayed orders */}
+          {/* Alerts panel */}
           <div className="alerts-panel">
             <div className="alerts-panel-title">Alerts</div>
             {delayed.length===0
@@ -923,9 +794,7 @@ export default function OrdersPage(){
                 </div>
               : delayed.slice(0,6).map(o=>(
                 <div key={o.shopifyId} className="alert-item" onClick={()=>{setSelected(o);setNoteVal(o.note);}}>
-                  {o.imageUrl
-                    ? <img src={o.imageUrl} className="alert-thumb" alt="" onError={e=>{e.target.style.display="none";}}/>
-                    : <div className="alert-thumb-ph">◈</div>}
+                  <div className="alert-thumb-ph">◈</div>
                   <div className="alert-info">
                     <div className="alert-id">{o.id}</div>
                     <div className="alert-status">{o.status}</div>
@@ -986,12 +855,6 @@ export default function OrdersPage(){
             <option value="Medium">Medium</option>
             <option value="Low">Low</option>
           </select>
-          <select className="tb-sel" value={payF} onChange={e=>{setPayF(e.target.value);setPage(1);}}>
-            <option value="all">All payments</option>
-            <option value="Paid">Paid</option>
-            <option value="Payment pending">Payment pending</option>
-            <option value="Authorized">Authorized</option>
-          </select>
           <button className="dl-btn" onClick={exportCSV}>
             <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" width="13" height="13">
               <path d="M7 1v8M4 6l3 3 3-3M2 11h10"/>
@@ -1014,7 +877,6 @@ export default function OrdersPage(){
                       setSelIds(n);
                     }}/>
                 </th>
-                <th style={{width:46}}></th>
                 <th>Order</th>
                 <th>Customer</th>
                 <th>Item</th>
@@ -1029,7 +891,7 @@ export default function OrdersPage(){
             </thead>
             <tbody>
               {pageItems.length===0?(
-                <tr><td colSpan={12}>
+                <tr><td colSpan={11}>
                   <div className="empty-box"><div className="empty-glyph">◎</div><div>No orders match your filters</div></div>
                 </td></tr>
               ):pageItems.map(o=>(
@@ -1051,7 +913,6 @@ export default function OrdersPage(){
                         setSelIds(n);
                       }}/>
                   </td>
-                  <td style={{padding:"8px 6px 8px 14px"}}><Thumb src={o.imageUrl}/></td>
                   <td>
                     <div className="ord-id">{o.id}</div>
                     <div className="ord-sid">{o.orderDate}</div>
@@ -1071,46 +932,6 @@ export default function OrdersPage(){
             </tbody>
           </table>
           <Pagination/>
-        </div>
-
-        {/* Bottom info */}
-        <div className="info-grid">
-          <div className="info-card">
-            <div className="info-title">Process Rules</div>
-            <div className="flow-row">
-              {["Shopify","Inventory","Production","Inventory","Dispatch"].map((n,i,a)=>(
-                <span key={i}>
-                  <span className="flow-node">{n}</span>
-                  {i<a.length-1&&<span className="flow-arr"> → </span>}
-                </span>
-              ))}
-            </div>
-            {[
-              "Every Shopify order enters automatically assigned to Inventory for stock check.",
-              "Inventory marks stock available (→ Dispatch) or sends SKU to Production.",
-              "Production completes work then returns to Inventory for QC — cannot close order directly.",
-              "Only Inventory approves orders as Ready for Dispatch after receiving finished items.",
-            ].map((t,i)=>(
-              <div key={i} className="step">
-                <div className="step-n">{i+1}</div>
-                <div className="step-t">{t}</div>
-              </div>
-            ))}
-          </div>
-          <div className="info-card">
-            <div className="info-title">Priority Tags</div>
-            <div style={{fontSize:12,color:"var(--text-2)",marginBottom:12,lineHeight:1.6}}>Add these tags to Shopify orders:</div>
-            {[
-              {badge:"b-pri-h",label:"High",  code:"priority:high  or  urgent"},
-              {badge:"b-pri-m",label:"Medium", code:"default (no tag)"},
-              {badge:"b-pri-l",label:"Low",    code:"priority:low"},
-            ].map(({badge,label,code})=>(
-              <div key={label} className="pri-row">
-                <span className={`badge ${badge}`}>{label}</span>
-                <span className="pri-code">{code}</span>
-              </div>
-            ))}
-          </div>
         </div>
       </main>
 
