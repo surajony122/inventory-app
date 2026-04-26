@@ -15,6 +15,12 @@ export const loader = async ({ request }) => {
   };
 };
 
+// Prevent this layout loader from re-running on every child route navigation.
+// authenticate.admin() throws a Shopify 200 session-token response on each call
+// which boundary.error() renders as just "200" on screen.
+// Auth is validated on first load — no need to re-check on every link click.
+export const shouldRevalidate = () => false;
+
 export default function App() {
   const { apiKey, search } = useLoaderData();
 
