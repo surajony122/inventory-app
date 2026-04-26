@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLoaderData, useSubmit, redirect } from "react-router";
+import { useLoaderData, useSubmit, redirect, useNavigate } from "react-router";
 import { wfCookie } from "../workflow.cookie.server";
+import { findWorkflowUser } from "../workflow.users.server";
 import prisma from "../db.server";
 
 // ── CSS ───────────────────────────────────────────────────────────────────────
@@ -232,7 +233,6 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--blue);cursor:poin
 
 // ── CONSTANTS ─────────────────────────────────────────────────────────────────
 const ROLES = ["admin","inventory","production","dispatch"];
-const PAGE_SIZE = 25;
 const PROD_STATUSES = ["Sent to Production","In Production","Production Complete"];
 
 const STATUS_BADGE = {
@@ -292,18 +292,29 @@ function getSingleActions(status){
   }
 }
 
+const SERVER_PAGE_SIZE = 50;
+
 // ── LOADER ────────────────────────────────────────────────────────────────────
 export const loader = async ({ request }) => {
-  // PIN auth check
-  const cookieHeader = request.headers.get("Cookie");
-  const val = await wfCookie.parse(cookieHeader);
-  if (val !== "authenticated") return redirect("/workflow");
+  const email = await wfCookie.parse(request.headers.get("Cookie"));
+  const user = findWorkflowUser(email);
+  if (!user) return redirect("/workflow");
 
-  // Read from local DB only (fast, no Shopify API)
-  const [cached, states] = await Promise.all([
-    prisma.orderCache.findMany({ orderBy: { updatedAt: "desc" } }),
+  const url = new URL(request.url);
+  const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
+  const skip = (page - 1) * SERVER_PAGE_SIZE;
+
+  const [total, cached, states] = await Promise.all([
+    prisma.orderCache.count(),
+    prisma.orderCache.findMany({
+      orderBy: { updatedAt: "desc" },
+      skip,
+      take: SERVER_PAGE_SIZE,
+    }),
     prisma.orderWorkflow.findMany(),
   ]);
+
+  const totalPages = Math.max(1, Math.ceil(total / SERVER_PAGE_SIZE));
 
   const orders = cached.map(c => {
     const st = states.find(s => s.id === c.id);
@@ -329,14 +340,20 @@ export const loader = async ({ request }) => {
     };
   });
 
-  return { orders, isEmpty: cached.length === 0 };
+  return {
+    orders,
+    user: { email: user.email, name: user.name, access: user.access },
+    page,
+    totalPages,
+    total,
+    isEmpty: total === 0,
+  };
 };
 
 // ── ACTION ────────────────────────────────────────────────────────────────────
 export const action = async ({ request }) => {
-  const cookieHeader = request.headers.get("Cookie");
-  const val = await wfCookie.parse(cookieHeader);
-  if (val !== "authenticated") return redirect("/workflow");
+  const email = await wfCookie.parse(request.headers.get("Cookie"));
+  if (!findWorkflowUser(email)) return redirect("/workflow");
 
   const fd = await request.formData();
   const type = fd.get("type");
@@ -393,24 +410,32 @@ export const action = async ({ request }) => {
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function WorkflowOrders() {
-  const { orders: init, isEmpty } = useLoaderData();
+  const { orders: init, isEmpty, user, page: serverPage, totalPages, total } = useLoaderData();
   const submit = useSubmit();
+  const navigate = useNavigate();
+
+  // Determine which role tabs this user can access
+  const accessibleRoles = ROLES.filter(r => user?.access?.includes(r));
+  const defaultRole = accessibleRoles[0] || "admin";
 
   const [orders,      setOrders]      = useState(init);
-  const [role,        setRole]        = useState("admin");
+  const [role,        setRole]        = useState(defaultRole);
   const [query,       setQuery]       = useState("");
   const [statusF,     setStatusF]     = useState("all");
   const [priorityF,   setPriorityF]   = useState("all");
   const [activeSKU,   setActiveSKU]   = useState(null);
   const [skuView,     setSkuView]     = useState("all");
   const [selIds,      setSelIds]      = useState(new Set());
-  const [page,        setPage]        = useState(1);
   const [selected,    setSelected]    = useState(null);
   const [noteVal,     setNoteVal]     = useState("");
   const [bulkPending, setBulkPending] = useState(null);
   const [toast,       setToast]       = useState(null);
 
-  useEffect(() => { setOrders(init); }, [init]);
+  useEffect(() => {
+    setOrders(init);
+    setSelIds(new Set());
+    setActiveSKU(null);
+  }, [init]);
 
   function showToast(msg, type="") {
     setToast({msg,type});
@@ -418,7 +443,7 @@ export default function WorkflowOrders() {
   }
 
   function changeRole(r) {
-    setRole(r); setActiveSKU(null); setSkuView("all"); setSelIds(new Set()); setPage(1);
+    setRole(r); setActiveSKU(null); setSkuView("all"); setSelIds(new Set());
     setQuery(""); setStatusF("all"); setPriorityF("all");
   }
 
@@ -439,9 +464,8 @@ export default function WorkflowOrders() {
     });
   }, [orders,role,activeSKU,skuView,statusF,priorityF,query]);
 
-  const totalPages = Math.max(1, Math.ceil(visible.length/PAGE_SIZE));
-  const curPage = Math.min(page, totalPages);
-  const pageItems = visible.slice((curPage-1)*PAGE_SIZE, curPage*PAGE_SIZE);
+  // All visible orders on this server page (no client-side slicing)
+  const pageItems = visible;
 
   // ── stats ───────────────────────────────────────────────────────────────
   const roleOrders = useMemo(()=>orders.filter(o=>ROLE_FILTER[role](o)), [orders,role]);
@@ -531,32 +555,31 @@ export default function WorkflowOrders() {
   // ── selection helpers ────────────────────────────────────────────────────
   const selArr=[...selIds];
   const availBulk=getAvailBulk(selArr,orders);
-  const allPageSel=pageItems.length>0&&pageItems.every(o=>selIds.has(o.shopifyId));
-  const someSel=pageItems.some(o=>selIds.has(o.shopifyId));
+  const allPageSel=visible.length>0&&visible.every(o=>selIds.has(o.shopifyId));
+  const someSel=visible.some(o=>selIds.has(o.shopifyId));
 
-  // ── Pagination ────────────────────────────────────────────────────────────
+  // ── Pagination (server-side) ──────────────────────────────────────────────
   function Pagination() {
-    if(totalPages<=1) return null;
-    const start=(curPage-1)*PAGE_SIZE, end=Math.min(start+pageItems.length,visible.length);
-    const pages=[];
-    for(let i=1;i<=Math.min(7,totalPages);i++){
-      let p;
-      if(totalPages<=7) p=i;
-      else if(curPage<=4) p=i;
-      else if(curPage>=totalPages-3) p=totalPages-6+i;
-      else p=curPage-3+i;
-      if(p>=1&&p<=totalPages) pages.push(p);
-    }
-    return(
+    const showCount = visible.length;
+    const start = (serverPage - 1) * SERVER_PAGE_SIZE + 1;
+    const end = Math.min(serverPage * SERVER_PAGE_SIZE, total);
+    return (
       <div className="pg-row">
-        <span>Showing {start+1}–{end} of {visible.length} orders</span>
-        <div className="pg-btns">
-          <button className="pg-btn" disabled={curPage===1} onClick={()=>setPage(1)}>«</button>
-          <button className="pg-btn" disabled={curPage===1} onClick={()=>setPage(p=>p-1)}>‹</button>
-          {pages.map(p=><button key={p} className={`pg-btn${p===curPage?" cur":""}`} onClick={()=>setPage(p)}>{p}</button>)}
-          <button className="pg-btn" disabled={curPage===totalPages} onClick={()=>setPage(p=>p+1)}>›</button>
-          <button className="pg-btn" disabled={curPage===totalPages} onClick={()=>setPage(totalPages)}>»</button>
-        </div>
+        <span>
+          {showCount < orders.length
+            ? `${showCount} filtered · `
+            : ""}
+          Orders {start}–{end} of {total} · Page {serverPage} of {totalPages}
+        </span>
+        {totalPages > 1 && (
+          <div className="pg-btns">
+            <button className="pg-btn" disabled={serverPage <= 1}
+              onClick={() => navigate(`?page=${serverPage - 1}`)}>‹ Prev</button>
+            <button className="pg-btn cur">{serverPage}</button>
+            <button className="pg-btn" disabled={serverPage >= totalPages}
+              onClick={() => navigate(`?page=${serverPage + 1}`)}>Next ›</button>
+          </div>
+        )}
       </div>
     );
   }
@@ -743,7 +766,7 @@ export default function WorkflowOrders() {
 
         <div className="hd-mid">
           <div className="role-tabs">
-            {ROLES.map(r=>(
+            {accessibleRoles.map(r=>(
               <button key={r} className={`role-tab${r===role?" active":""}`} onClick={()=>changeRole(r)}>
                 {r[0].toUpperCase()+r.slice(1)}
               </button>
@@ -752,6 +775,11 @@ export default function WorkflowOrders() {
         </div>
 
         <div className="hd-right">
+          {user?.name && (
+            <span style={{fontSize:11,color:"rgba(255,255,255,0.45)",fontFamily:"'DM Sans',sans-serif"}}>
+              {user.name}
+            </span>
+          )}
           <button className="hd-link" onClick={doLogout}>Sign Out</button>
         </div>
       </header>
@@ -841,15 +869,15 @@ export default function WorkflowOrders() {
               <circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l2.5 2.5"/>
             </svg>
             <input type="text" placeholder="Search order, customer, SKU…" value={query}
-              onChange={e=>{setQuery(e.target.value);setPage(1);}}/>
+              onChange={e=>{setQuery(e.target.value);}}/>
           </div>
-          <select className="tb-sel" value={statusF} onChange={e=>{setStatusF(e.target.value);setPage(1);}}>
+          <select className="tb-sel" value={statusF} onChange={e=>{setStatusF(e.target.value);}}>
             <option value="all">All statuses</option>
             {(role==="production" ? PROD_STATUSES : Object.keys(STATUS_BADGE)).map(s=>(
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
-          <select className="tb-sel" value={priorityF} onChange={e=>{setPriorityF(e.target.value);setPage(1);}}>
+          <select className="tb-sel" value={priorityF} onChange={e=>{setPriorityF(e.target.value);}}>
             <option value="all">All priorities</option>
             <option value="High">High</option>
             <option value="Medium">Medium</option>
@@ -873,7 +901,7 @@ export default function WorkflowOrders() {
                     ref={el=>{if(el) el.indeterminate=!allPageSel&&someSel;}}
                     onChange={e=>{
                       const n=new Set(selIds);
-                      e.target.checked?pageItems.forEach(o=>n.add(o.shopifyId)):pageItems.forEach(o=>n.delete(o.shopifyId));
+                      e.target.checked?visible.forEach(o=>n.add(o.shopifyId)):visible.forEach(o=>n.delete(o.shopifyId));
                       setSelIds(n);
                     }}/>
                 </th>
