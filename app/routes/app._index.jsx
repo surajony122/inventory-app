@@ -187,6 +187,9 @@ const TABS = [
   ["alerts", "Alerts"],
 ];
 
+// Prevent loader re-runs after actions — avoids authenticate.admin 200 response.
+export const shouldRevalidate = () => false;
+
 // ── LOADER ────────────────────────────────────────────────────────────────────
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);

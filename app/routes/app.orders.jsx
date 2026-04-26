@@ -406,6 +406,12 @@ async function fetchAndCacheFromShopify(admin) {
   return { count: rawOrders.length, ordersError };
 }
 
+// Stop React Router from re-running any loaders after actions.
+// Optimistic UI (setOrders) handles instant updates on screen.
+// Sync action returns fresh orders in its response via useActionData.
+// Re-running loaders would trigger authenticate.admin in app.jsx → shows "200".
+export const shouldRevalidate = () => false;
+
 // ── LOADER — reads from local cache (instant, no Shopify API) ────────────────
 export const loader = async ({ request }) => {
   // Auth is handled by the app.jsx layout loader.
@@ -425,11 +431,13 @@ export const loader = async ({ request }) => {
 
 // ── ACTION ────────────────────────────────────────────────────────────────────
 export const action = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
   const fd=await request.formData();
   const type=fd.get("type");
 
+  // Only "sync" needs Shopify admin API — calling authenticate.admin for every
+  // action caused Shopify's session-token flow to throw a 200 Response on screen.
   if(type==="sync"){
+    const { admin } = await authenticate.admin(request);
     const result = await fetchAndCacheFromShopify(admin);
     // Refresh orders from cache and return
     const [cached,states]=await Promise.all([
