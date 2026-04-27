@@ -1,10 +1,10 @@
-const https = require("https");
+import https from "https";
 
 const secret   = process.env.CRON_SECRET || "";
 const hostname = "unnicharya-app.onrender.com";
 
 if (!secret) {
-  console.error("CRON_SECRET env var is not set");
+  console.error("[cron-sync] CRON_SECRET env var is not set");
   process.exit(1);
 }
 
