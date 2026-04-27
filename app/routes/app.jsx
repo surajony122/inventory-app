@@ -4,10 +4,14 @@ import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { AppProvider as PolarisProvider } from "@shopify/polaris";
 import enTranslations from "@shopify/polaris/locales/en.json";
 import { NavMenu } from "@shopify/app-bridge-react";
-import { authenticate } from "../shopify.server";
+import { authenticate, registerWebhooks } from "../shopify.server";
 
 export const loader = async ({ request }) => {
-  await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
+  // Register Shopify webhooks once per session — fires on first app open
+  registerWebhooks(session).catch(err =>
+    console.error("[webhooks] Registration failed:", err.message)
+  );
   const url = new URL(request.url);
   return {
     apiKey: process.env.SHOPIFY_API_KEY || "",
