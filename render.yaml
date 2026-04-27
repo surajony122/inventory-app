@@ -27,11 +27,9 @@ services:
     name: unnicharya-sync-orders
     plan: free
     schedule: "0 */5 * * *"
-    startCommand: >-
-      curl -sf -X POST https://unnicharya-app.onrender.com/api/cron/sync
-      -H "x-cron-secret: $CRON_SECRET"
-      -H "Content-Length: 0"
-      && echo "sync ok"
+    runtime: node
+    buildCommand: echo ready
+    startCommand: node scripts/cron-sync.js
     envVars:
       - key: CRON_SECRET
         sync: false
