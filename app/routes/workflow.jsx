@@ -1,4 +1,4 @@
-import { Outlet, redirect } from "react-router";
+import { Outlet, redirect, useActionData } from "react-router";
 import { wfCookie } from "../workflow.cookie.server";
 import { findWorkflowUser } from "../workflow.users.server";
 import { generateOtp, verifyOtp } from "../otp.server";
@@ -71,5 +71,6 @@ export const action = async ({ request }) => {
 };
 
 export default function WorkflowLayout() {
-  return <Outlet />;
+  const actionData = useActionData();
+  return <Outlet context={actionData} />;
 }

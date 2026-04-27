@@ -1,4 +1,4 @@
-import { redirect, useActionData, useNavigation } from "react-router";
+import { redirect, useOutletContext, useNavigation } from "react-router";
 import { wfCookie } from "../workflow.cookie.server";
 import { findWorkflowUser } from "../workflow.users.server";
 
@@ -43,7 +43,7 @@ export const loader = async ({ request }) => {
 };
 
 export default function WorkflowLogin() {
-  const actionData  = useActionData();
+  const actionData  = useOutletContext(); // action lives on parent workflow.jsx
   const navigation  = useNavigation();
   const isLoading   = navigation.state === "submitting";
 
