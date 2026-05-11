@@ -54,7 +54,7 @@ async function fetchAllOrders(shop, accessToken) {
 
     if (isFirst) {
       params.set("status", "any");
-      params.set("order", "created_at asc");
+      params.set("order", "created_at desc");
       params.set("fields", "id,name,created_at,financial_status,customer,line_items,tags,note");
     } else {
       // When using page_info, no other filters allowed
