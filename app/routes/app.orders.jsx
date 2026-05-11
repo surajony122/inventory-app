@@ -343,41 +343,58 @@ async function fetchAndCacheFromShopify(admin) {
   const PAY_MAP={PAID:"Paid",PENDING:"Payment pending",AUTHORIZED:"Authorized",PARTIALLY_PAID:"Partially paid",REFUNDED:"Refunded",VOIDED:"Voided"};
   let rawOrders=[], ordersError=null;
 
-  // Fetch latest 50 orders only — fast (~2s). Use upsert so older cached orders are preserved.
+  // Fetch all orders with cursor pagination
   try{
-    const resp=await admin.graphql(`
-      query {
-        orders(first:50,sortKey:CREATED_AT,reverse:true){
-          edges{ node{
-            id name createdAt displayFinancialStatus
-            customer{ firstName lastName }
-            lineItems(first:3){ edges{ node{ title sku quantity image{ url } } } }
-            tags note
-          }}
-        }
-      }
-    `);
-    const json=await resp.json();
-    if(json.errors?.length) throw new Error(json.errors[0].message);
-    rawOrders=(json.data?.orders?.edges||[]).map(e=>e.node);
-  }catch(err){
-    ordersError=err.message||"Shopify API error";
-    // Fallback: no customer field
-    try{
+    let cursor=null, hasNext=true;
+    while(hasNext){
       const resp=await admin.graphql(`
-        query {
-          orders(first:50,sortKey:CREATED_AT,reverse:true){
+        query($cursor:String){
+          orders(first:250,after:$cursor,sortKey:CREATED_AT,reverse:true){
+            pageInfo{ hasNextPage endCursor }
             edges{ node{
               id name createdAt displayFinancialStatus
+              customer{ firstName lastName }
               lineItems(first:3){ edges{ node{ title sku quantity image{ url } } } }
               tags note
             }}
           }
         }
-      `);
+      `,{variables:{cursor}});
       const json=await resp.json();
       if(json.errors?.length) throw new Error(json.errors[0].message);
-      rawOrders=(json.data?.orders?.edges||[]).map(e=>e.node);
+      const pg=json.data?.orders;
+      if(!pg) break;
+      rawOrders=rawOrders.concat(pg.edges.map(e=>e.node));
+      hasNext=pg.pageInfo.hasNextPage;
+      cursor=pg.pageInfo.endCursor;
+    }
+  }catch(err){
+    ordersError=err.message||"Shopify API error";
+    // Fallback: no customer field
+    try{
+      rawOrders=[];
+      let cursor=null, hasNext=true;
+      while(hasNext){
+        const resp=await admin.graphql(`
+          query($cursor:String){
+            orders(first:250,after:$cursor,sortKey:CREATED_AT,reverse:true){
+              pageInfo{ hasNextPage endCursor }
+              edges{ node{
+                id name createdAt displayFinancialStatus
+                lineItems(first:3){ edges{ node{ title sku quantity image{ url } } } }
+                tags note
+              }}
+            }
+          }
+        `,{variables:{cursor}});
+        const json=await resp.json();
+        if(json.errors?.length) throw new Error(json.errors[0].message);
+        const pg=json.data?.orders;
+        if(!pg) break;
+        rawOrders=rawOrders.concat(pg.edges.map(e=>e.node));
+        hasNext=pg.pageInfo.hasNextPage;
+        cursor=pg.pageInfo.endCursor;
+      }
       ordersError=null;
     }catch(_){}
   }
