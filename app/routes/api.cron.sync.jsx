@@ -54,7 +54,7 @@ async function fetchAllOrders(shop, accessToken) {
 
     if (isFirst) {
       params.set("status", "any");
-      params.set("order", "created_at desc");
+      params.set("order", "created_at asc");
       params.set("fields", "id,name,created_at,financial_status,customer,line_items,tags,note");
     } else {
       // When using page_info, no other filters allowed
@@ -120,20 +120,13 @@ export const action = async ({ request }) => {
   }
 
   try {
-    const t0 = Date.now();
-    // Run the sync in the background so the HTTP request returns immediately
-    fetchAllOrders(session.shop, session.accessToken)
-      .then(count => {
-        const secs = ((Date.now() - t0) / 1000).toFixed(1);
-        console.log(`[cron-sync] ✅ Background sync completed. Synced ${count} orders in ${secs}s`);
-      })
-      .catch(err => {
-        console.error("[cron-sync] ❌ Background sync failed:", err.message);
-      });
-
-    return Response.json({ ok: true, message: "Sync started in background" });
+    const t0    = Date.now();
+    const count = await fetchAllOrders(session.shop, session.accessToken);
+    const secs  = ((Date.now() - t0) / 1000).toFixed(1);
+    console.log(`[cron-sync] ✅ Synced ${count} orders in ${secs}s`);
+    return Response.json({ ok: true, synced: count, elapsed: `${secs}s`, shop: session.shop });
   } catch (err) {
-    console.error("[cron-sync] ❌ Failed to start sync:", err.message);
+    console.error("[cron-sync] ❌ Failed:", err.message);
     return Response.json({ ok: false, error: err.message }, { status: 500 });
   }
 };
