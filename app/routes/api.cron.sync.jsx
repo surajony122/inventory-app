@@ -43,9 +43,8 @@ function mapOrder(order) {
   };
 }
 
-// Fetches ALL orders from Jan 2025 onwards using Shopify REST cursor pagination
+// Fetches ALL orders ever using Shopify REST cursor pagination
 async function fetchAllOrders(shop, accessToken) {
-  const SINCE = "2025-01-01T00:00:00Z";
   let pageInfo = null;
   let isFirst  = true;
   let total    = 0;
@@ -54,8 +53,7 @@ async function fetchAllOrders(shop, accessToken) {
     const params = new URLSearchParams({ limit: "250", status: "any" });
 
     if (isFirst) {
-      params.set("created_at_min", SINCE);
-      params.set("order", "created_at desc");
+      params.set("order", "created_at asc");
       params.set("fields", "id,name,created_at,financial_status,customer,line_items,tags,note");
     } else {
       // When using page_info, no other filters allowed

@@ -307,7 +307,7 @@ export const loader = async ({ request }) => {
   const [total, cached, states] = await Promise.all([
     prisma.orderCache.count(),
     prisma.orderCache.findMany({
-      orderBy: { updatedAt: "desc" },
+      orderBy: { createdAt: "desc" },
       skip,
       take: SERVER_PAGE_SIZE,
     }),
