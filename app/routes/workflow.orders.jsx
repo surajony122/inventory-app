@@ -292,7 +292,7 @@ function getSingleActions(status){
   }
 }
 
-const SERVER_PAGE_SIZE = 50;
+const SERVER_PAGE_SIZE = 10000;
 
 // ── LOADER ────────────────────────────────────────────────────────────────────
 export const loader = async ({ request }) => {
