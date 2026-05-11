@@ -339,24 +339,36 @@ function buildOrdersFromCache(cached, states) {
   });
 }
 
-async function fetchAndCacheFromShopify(admin) {
+async function fetchAndCacheFromShopify(shop, accessToken) {
   const PAY_MAP={PAID:"Paid",PENDING:"Payment pending",AUTHORIZED:"Authorized",PARTIALLY_PAID:"Partially paid",REFUNDED:"Refunded",VOIDED:"Voided"};
   let rawOrders=[], ordersError=null;
 
+  const url = `https://${shop}/admin/api/2024-10/graphql.json`;
+  const headers = {
+    "X-Shopify-Access-Token": accessToken,
+    "Content-Type": "application/json",
+  };
+
   // Fetch latest 250 orders only — fast (~3s).
   try{
-    const resp=await admin.graphql(`
-      query {
-        orders(first:250,sortKey:CREATED_AT,reverse:true){
-          edges{ node{
-            id name createdAt displayFinancialStatus
-            customer{ firstName lastName }
-            lineItems(first:3){ edges{ node{ title sku quantity image{ url } } } }
-            tags note
-          }}
-        }
-      }
-    `);
+    const resp = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        query: `
+          query {
+            orders(first:250,sortKey:CREATED_AT,reverse:true){
+              edges{ node{
+                id name createdAt displayFinancialStatus
+                customer{ firstName lastName }
+                lineItems(first:3){ edges{ node{ title sku quantity image{ url } } } }
+                tags note
+              }}
+            }
+          }
+        `
+      }),
+    });
     const json=await resp.json();
     if(json.errors?.length) throw new Error(json.errors[0].message);
     rawOrders=(json.data?.orders?.edges||[]).map(e=>e.node);
@@ -364,17 +376,23 @@ async function fetchAndCacheFromShopify(admin) {
     ordersError=err.message||"Shopify API error";
     // Fallback: no customer field
     try{
-      const resp=await admin.graphql(`
-        query {
-          orders(first:250,sortKey:CREATED_AT,reverse:true){
-            edges{ node{
-              id name createdAt displayFinancialStatus
-              lineItems(first:3){ edges{ node{ title sku quantity image{ url } } } }
-              tags note
-            }}
-          }
-        }
-      `);
+      const resp = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          query: `
+            query {
+              orders(first:250,sortKey:CREATED_AT,reverse:true){
+                edges{ node{
+                  id name createdAt displayFinancialStatus
+                  lineItems(first:3){ edges{ node{ title sku quantity image{ url } } } }
+                  tags note
+                }}
+              }
+            }
+          `
+        }),
+      });
       const json=await resp.json();
       if(json.errors?.length) throw new Error(json.errors[0].message);
       rawOrders=(json.data?.orders?.edges||[]).map(e=>e.node);
@@ -437,8 +455,16 @@ export const action = async ({ request }) => {
   // Only "sync" needs Shopify admin API — calling authenticate.admin for every
   // action caused Shopify's session-token flow to throw a 200 Response on screen.
   if(type==="sync"){
-    const { admin } = await authenticate.admin(request);
-    const result = await fetchAndCacheFromShopify(admin);
+    const session = await prisma.session.findFirst({
+      where:   { isOnline: false },
+      orderBy: { expires: "desc" },
+    });
+    
+    if (!session?.accessToken || !session?.shop) {
+      return {ok:false, ordersError:"No Shopify session found. Open the app in Shopify admin once."};
+    }
+
+    const result = await fetchAndCacheFromShopify(session.shop, session.accessToken);
     // Refresh orders from cache and return
     const [cached,states]=await Promise.all([
       prisma.orderCache.findMany({orderBy:{updatedAt:"desc"}}),
