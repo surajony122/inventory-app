@@ -2,7 +2,7 @@
   "name": "unnicharya",
   "private": true,
   "scripts": {
-    "build": "prisma generate && react-router build",
+    "build": "prisma generate && NODE_OPTIONS='--max-old-space-size=450' react-router build",
     "dev": "shopify app dev",
     "config:link": "shopify app config link",
     "generate": "shopify app generate",
