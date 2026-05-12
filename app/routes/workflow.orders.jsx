@@ -423,7 +423,6 @@ export default function WorkflowOrders() {
   const [query,       setQuery]       = useState("");
   const [statusF,     setStatusF]     = useState("all");
   const [priorityF,   setPriorityF]   = useState("all");
-  const [dateF,        setDateF]        = useState("");
   const [activeSKU,   setActiveSKU]   = useState(null);
   const [skuView,     setSkuView]     = useState("all");
   const [selIds,      setSelIds]      = useState(new Set());
@@ -457,7 +456,6 @@ export default function WorkflowOrders() {
       if (role==="production" && skuView==="active" && o.status!=="In Production") return false;
       if (statusF!=="all" && o.status!==statusF) return false;
       if (priorityF!=="all" && o.priority!==priorityF) return false;
-      if (dateF && o.createdAt && o.createdAt.slice(0, 10) !== dateF) return false;
       if (query) {
         const q = query.toLowerCase();
         if (![o.id,o.customer,o.item,o.sku].join(" ").toLowerCase().includes(q)) return false;
@@ -885,7 +883,6 @@ export default function WorkflowOrders() {
             <option value="Medium">Medium</option>
             <option value="Low">Low</option>
           </select>
-          <input type="date" className="tb-sel" value={dateF} onChange={e=>{setDateF(e.target.value);}} style={{color: dateF ? 'var(--text)' : 'var(--text-3)'}} />
           <button className="dl-btn" onClick={exportCSV}>
             <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" width="13" height="13">
               <path d="M7 1v8M4 6l3 3 3-3M2 11h10"/>

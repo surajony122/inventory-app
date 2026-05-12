@@ -339,75 +339,62 @@ function buildOrdersFromCache(cached, states) {
   });
 }
 
-async function fetchAndCacheFromShopify(shop, accessToken) {
+async function fetchAndCacheFromShopify(admin) {
   const PAY_MAP={PAID:"Paid",PENDING:"Payment pending",AUTHORIZED:"Authorized",PARTIALLY_PAID:"Partially paid",REFUNDED:"Refunded",VOIDED:"Voided"};
   let rawOrders=[], ordersError=null;
 
-  const url = `https://${shop}/admin/api/2024-10/graphql.json`;
-  const headers = {
-    "X-Shopify-Access-Token": accessToken,
-    "Content-Type": "application/json",
-  };
-
-  // Fetch latest 250 orders only — fast (~3s).
+  // Fetch all orders with cursor pagination
   try{
-    const resp = await fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        query: `
-          query {
-            orders(first:250,sortKey:CREATED_AT,reverse:true){
+    let cursor=null, hasNext=true;
+    while(hasNext){
+      const resp=await admin.graphql(`
+        query($cursor:String){
+          orders(first:250,after:$cursor,sortKey:CREATED_AT,reverse:true){
+            pageInfo{ hasNextPage endCursor }
+            edges{ node{
+              id name createdAt displayFinancialStatus
+              customer{ firstName lastName }
+              lineItems(first:3){ edges{ node{ title sku quantity image{ url } } } }
+              tags note
+            }}
+          }
+        }
+      `,{variables:{cursor}});
+      const json=await resp.json();
+      if(json.errors?.length) throw new Error(json.errors[0].message);
+      const pg=json.data?.orders;
+      if(!pg) break;
+      rawOrders=rawOrders.concat(pg.edges.map(e=>e.node));
+      hasNext=pg.pageInfo.hasNextPage;
+      cursor=pg.pageInfo.endCursor;
+    }
+  }catch(err){
+    ordersError=err.message||"Shopify API error";
+    // Fallback: no customer field
+    try{
+      rawOrders=[];
+      let cursor=null, hasNext=true;
+      while(hasNext){
+        const resp=await admin.graphql(`
+          query($cursor:String){
+            orders(first:250,after:$cursor,sortKey:CREATED_AT,reverse:true){
+              pageInfo{ hasNextPage endCursor }
               edges{ node{
                 id name createdAt displayFinancialStatus
-                customer{ firstName lastName }
                 lineItems(first:3){ edges{ node{ title sku quantity image{ url } } } }
                 tags note
               }}
             }
           }
-        `
-      }),
-    });
-    
-    if (!resp.ok) {
-      const text = await resp.text();
-      throw new Error(`HTTP ${resp.status}: ${text}`);
-    }
-    
-    const json=await resp.json();
-    if(json.errors?.length) throw new Error(json.errors[0].message);
-    rawOrders=(json.data?.orders?.edges||[]).map(e=>e.node);
-  }catch(err){
-    ordersError=err.message||"Shopify API error";
-    // Fallback: no customer field
-    try{
-      const resp = await fetch(url, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          query: `
-            query {
-              orders(first:250,sortKey:CREATED_AT,reverse:true){
-                edges{ node{
-                  id name createdAt displayFinancialStatus
-                  lineItems(first:3){ edges{ node{ title sku quantity image{ url } } } }
-                  tags note
-                }}
-              }
-            }
-          `
-        }),
-      });
-      
-      if (!resp.ok) {
-        const text = await resp.text();
-        throw new Error(`HTTP ${resp.status}: ${text}`);
+        `,{variables:{cursor}});
+        const json=await resp.json();
+        if(json.errors?.length) throw new Error(json.errors[0].message);
+        const pg=json.data?.orders;
+        if(!pg) break;
+        rawOrders=rawOrders.concat(pg.edges.map(e=>e.node));
+        hasNext=pg.pageInfo.hasNextPage;
+        cursor=pg.pageInfo.endCursor;
       }
-      
-      const json=await resp.json();
-      if(json.errors?.length) throw new Error(json.errors[0].message);
-      rawOrders=(json.data?.orders?.edges||[]).map(e=>e.node);
       ordersError=null;
     }catch(_){}
   }
@@ -467,16 +454,8 @@ export const action = async ({ request }) => {
   // Only "sync" needs Shopify admin API — calling authenticate.admin for every
   // action caused Shopify's session-token flow to throw a 200 Response on screen.
   if(type==="sync"){
-    const session = await prisma.session.findFirst({
-      where:   { isOnline: false },
-      orderBy: { expires: "desc" },
-    });
-    
-    if (!session?.accessToken || !session?.shop) {
-      return {ok:false, ordersError:"No Shopify session found. Open the app in Shopify admin once."};
-    }
-
-    const result = await fetchAndCacheFromShopify(session.shop, session.accessToken);
+    const { admin } = await authenticate.admin(request);
+    const result = await fetchAndCacheFromShopify(admin);
     // Refresh orders from cache and return
     const [cached,states]=await Promise.all([
       prisma.orderCache.findMany({orderBy:{updatedAt:"desc"}}),
@@ -496,67 +475,6 @@ export const action = async ({ request }) => {
       update:{status:ns,owner:no||ex?.owner||"Inventory - Queue",...(note!==null?{note}:{}),handoffs:JSON.stringify(hfs)},
       create:{id,status:ns,owner:no||"Inventory - Queue",note:note||"",handoffs:JSON.stringify(hfs)},
     });
-
-    // Write status back to Shopify as a tag
-    if (ns) {
-      const session = await prisma.session.findFirst({
-        where:   { isOnline: false },
-        orderBy: { expires: "desc" },
-      });
-      if (session?.accessToken && session?.shop) {
-        const url = `https://${session.shop}/admin/api/2024-10/graphql.json`;
-        const headers = {
-          "X-Shopify-Access-Token": session.accessToken,
-          "Content-Type": "application/json",
-        };
-        const allStatuses = [
-          "Status: Awaiting Inventory Check",
-          "Status: Sent to Production",
-          "Status: In Production",
-          "Status: Production Complete",
-          "Status: Returned to Inventory",
-          "Status: Ready for Dispatch",
-          "Status: Dispatched"
-        ];
-        
-        try {
-          // Remove old status tags
-          await fetch(url, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({
-              query: `
-                mutation tagsRemove($id: ID!, $tags: [String!]!) {
-                  tagsRemove(id: $id, tags: $tags) {
-                    userErrors { field message }
-                  }
-                }
-              `,
-              variables: { id, tags: allStatuses }
-            })
-          });
-
-          // Add new status tag
-          await fetch(url, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({
-              query: `
-                mutation tagsAdd($id: ID!, $tags: [String!]!) {
-                  tagsAdd(id: $id, tags: $tags) {
-                    userErrors { field message }
-                  }
-                }
-              `,
-              variables: { id, tags: [`Status: ${ns}`] }
-            })
-          });
-        } catch (err) {
-          console.error("[update] Failed to update Shopify tags:", err.message);
-        }
-      }
-    }
-
     return {ok:true};
   }
 
