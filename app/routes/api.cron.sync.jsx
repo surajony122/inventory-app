@@ -50,9 +50,10 @@ async function fetchAllOrders(shop, accessToken) {
   let total    = 0;
 
   while (isFirst || pageInfo) {
-    const params = new URLSearchParams({ limit: "250", status: "any" });
+    const params = new URLSearchParams({ limit: "250" });
 
     if (isFirst) {
+      params.set("status", "any");
       params.set("order", "created_at asc");
       params.set("fields", "id,name,created_at,financial_status,customer,line_items,tags,note");
     } else {
