@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLoaderData, useSubmit, Link, useLocation, useActionData } from "react-router";
-import { authenticate } from "../shopify.server";
+import { authenticate, unauthenticated } from "../shopify.server";
 import prisma from "../db.server";
 
 // ── CSS ───────────────────────────────────────────────────────────────────────
@@ -454,7 +454,16 @@ export const action = async ({ request }) => {
   // Only "sync" needs Shopify admin API — calling authenticate.admin for every
   // action caused Shopify's session-token flow to throw a 200 Response on screen.
   if(type==="sync"){
-    const { admin } = await authenticate.admin(request);
+    const session = await prisma.session.findFirst({
+      where:   { isOnline: false },
+      orderBy: { expires: "desc" },
+    });
+    
+    if (!session?.accessToken || !session?.shop) {
+      return {ok:false, ordersError:"No Shopify session found. Open the app in Shopify admin once."};
+    }
+
+    const { admin } = await unauthenticated.admin(session.shop);
     const result = await fetchAndCacheFromShopify(admin);
     // Refresh orders from cache and return
     const [cached,states]=await Promise.all([
