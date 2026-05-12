@@ -496,6 +496,67 @@ export const action = async ({ request }) => {
       update:{status:ns,owner:no||ex?.owner||"Inventory - Queue",...(note!==null?{note}:{}),handoffs:JSON.stringify(hfs)},
       create:{id,status:ns,owner:no||"Inventory - Queue",note:note||"",handoffs:JSON.stringify(hfs)},
     });
+
+    // Write status back to Shopify as a tag
+    if (ns) {
+      const session = await prisma.session.findFirst({
+        where:   { isOnline: false },
+        orderBy: { expires: "desc" },
+      });
+      if (session?.accessToken && session?.shop) {
+        const url = `https://${session.shop}/admin/api/2024-10/graphql.json`;
+        const headers = {
+          "X-Shopify-Access-Token": session.accessToken,
+          "Content-Type": "application/json",
+        };
+        const allStatuses = [
+          "Status: Awaiting Inventory Check",
+          "Status: Sent to Production",
+          "Status: In Production",
+          "Status: Production Complete",
+          "Status: Returned to Inventory",
+          "Status: Ready for Dispatch",
+          "Status: Dispatched"
+        ];
+        
+        try {
+          // Remove old status tags
+          await fetch(url, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              query: `
+                mutation tagsRemove($id: ID!, $tags: [String!]!) {
+                  tagsRemove(id: $id, tags: $tags) {
+                    userErrors { field message }
+                  }
+                }
+              `,
+              variables: { id, tags: allStatuses }
+            })
+          });
+
+          // Add new status tag
+          await fetch(url, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              query: `
+                mutation tagsAdd($id: ID!, $tags: [String!]!) {
+                  tagsAdd(id: $id, tags: $tags) {
+                    userErrors { field message }
+                  }
+                }
+              `,
+              variables: { id, tags: [`Status: ${ns}`] }
+            })
+          });
+        } catch (err) {
+          console.error("[update] Failed to update Shopify tags:", err.message);
+        }
+      }
+    }
+
     return {ok:true};
   }
 
