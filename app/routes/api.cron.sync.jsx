@@ -107,24 +107,31 @@ export const action = async ({ request }) => {
   }
 
   // Get the stored Shopify session (offline token = permanent access)
-  const session = await prisma.session.findFirst({
-    where:   { isOnline: false },
-    orderBy: { expires: "desc" },
-  });
+  let accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
+  let shop = process.env.SHOPIFY_STORE_URL;
 
-  if (!session?.accessToken || !session?.shop) {
+  if (!accessToken) {
+    const session = await prisma.session.findFirst({
+      where:   { isOnline: false },
+      orderBy: { expires: "desc" },
+    });
+    accessToken = session?.accessToken;
+    shop = session?.shop;
+  }
+
+  if (!accessToken || !shop) {
     return Response.json(
-      { error: "No Shopify session found. Open the app in Shopify admin once to create a session." },
+      { error: "No Shopify session found and SHOPIFY_ACCESS_TOKEN is not set. Open the app in Shopify admin once to create a session." },
       { status: 500 }
     );
   }
 
   try {
     const t0    = Date.now();
-    const count = await fetchAllOrders(session.shop, session.accessToken);
+    const count = await fetchAllOrders(shop, accessToken);
     const secs  = ((Date.now() - t0) / 1000).toFixed(1);
     console.log(`[cron-sync] ✅ Synced ${count} orders in ${secs}s`);
-    return Response.json({ ok: true, synced: count, elapsed: `${secs}s`, shop: session.shop });
+    return Response.json({ ok: true, synced: count, elapsed: `${secs}s`, shop: shop });
   } catch (err) {
     console.error("[cron-sync] ❌ Failed:", err.message);
     return Response.json({ ok: false, error: err.message }, { status: 500 });
