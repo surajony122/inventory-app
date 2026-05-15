@@ -67,3 +67,12 @@ model OrderCache {
   updatedAt     DateTime @updatedAt
 }
 
+model WorkflowUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  access    String   // JSON string of roles, e.g., '["admin", "inventory"]'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+

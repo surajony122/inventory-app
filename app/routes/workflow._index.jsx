@@ -38,7 +38,7 @@ html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text
 
 export const loader = async ({ request }) => {
   const email = await wfCookie.parse(request.headers.get("Cookie"));
-  if (email && findWorkflowUser(email)) return redirect("/workflow/orders");
+  if (email && (await findWorkflowUser(email))) return redirect("/workflow/orders");
   return {};
 };
 

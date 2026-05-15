@@ -12,7 +12,7 @@ export const action = async ({ request }) => {
     const email = (fd.get("email") || "").trim().toLowerCase();
     if (!email) return { step: "email", error: "Please enter your email address." };
 
-    const user = findWorkflowUser(email);
+    const user = await findWorkflowUser(email);
     if (!user) return { step: "email", error: "This email is not authorized. Contact your admin." };
 
     const code = generateOtp(email);

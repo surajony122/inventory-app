@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLoaderData, useSubmit, redirect, useNavigate } from "react-router";
+import { useLoaderData, useSubmit, redirect, useNavigate, Link } from "react-router";
 import { wfCookie } from "../workflow.cookie.server";
 import { findWorkflowUser } from "../workflow.users.server";
 import prisma from "../db.server";
@@ -297,7 +297,7 @@ const SERVER_PAGE_SIZE = 10000;
 // ── LOADER ────────────────────────────────────────────────────────────────────
 export const loader = async ({ request }) => {
   const email = await wfCookie.parse(request.headers.get("Cookie"));
-  const user = findWorkflowUser(email);
+  const user = await findWorkflowUser(email);
   if (!user) return redirect("/workflow");
 
   const url = new URL(request.url);
@@ -779,6 +779,9 @@ export default function WorkflowOrders() {
             <span style={{fontSize:11,color:"rgba(255,255,255,0.45)",fontFamily:"'DM Sans',sans-serif"}}>
               {user.name}
             </span>
+          )}
+          {user?.access?.includes("admin") && (
+            <Link to="/workflow/users" className="hd-link">Manage Users</Link>
           )}
           <button className="hd-link" onClick={doLogout}>Sign Out</button>
         </div>
