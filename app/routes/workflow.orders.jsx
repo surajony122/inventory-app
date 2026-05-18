@@ -303,7 +303,7 @@ export const loader = async ({ request }) => {
   const user = await findWorkflowUser(email);
   if (!user) return redirect("/workflow");
 
-  // Get IDs of completed (Dispatched/Cancelled) orders to exclude at database level
+  // Get IDs of completed (Dispatched/Cancelled) orders to exclude at database level if they are too old
   const completedWorkflows = await prisma.orderWorkflow.findMany({
     where: {
       status: { in: ["Dispatched", "Cancelled"] }
@@ -312,21 +312,41 @@ export const loader = async ({ request }) => {
   });
   const completedIds = completedWorkflows.map(w => w.id);
 
+  const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
   const [total, cached, states] = await Promise.all([
     prisma.orderCache.count({
       where: {
-        id: { notIn: completedIds }
+        OR: [
+          { id: { notIn: completedIds } },
+          {
+            id: { in: completedIds },
+            createdAt: { gte: last30Days }
+          }
+        ]
       }
     }),
     prisma.orderCache.findMany({
       where: {
-        id: { notIn: completedIds }
+        OR: [
+          { id: { notIn: completedIds } },
+          {
+            id: { in: completedIds },
+            createdAt: { gte: last30Days }
+          }
+        ]
       },
       orderBy: { createdAt: "desc" },
     }),
     prisma.orderWorkflow.findMany({
       where: {
-        id: { notIn: completedIds }
+        OR: [
+          { id: { notIn: completedIds } },
+          {
+            id: { in: completedIds },
+            createdAt: { gte: last30Days }
+          }
+        ]
       }
     }),
   ]);

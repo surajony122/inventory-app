@@ -440,9 +440,40 @@ export const loader = async ({ request }) => {
   // 1. We only read from local DB (no Shopify API needed)
   // 2. Calling it triggers a Shopify session-token round-trip that shows "200"
 
+  const completedWorkflows = await prisma.orderWorkflow.findMany({
+    where: {
+      status: { in: ["Dispatched", "Cancelled"] }
+    },
+    select: { id: true }
+  });
+  const completedIds = completedWorkflows.map(w => w.id);
+
+  const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
   const [cached, states] = await Promise.all([
-    prisma.orderCache.findMany({ orderBy:{ updatedAt:"desc" } }),
-    prisma.orderWorkflow.findMany(),
+    prisma.orderCache.findMany({
+      where: {
+        OR: [
+          { id: { notIn: completedIds } },
+          {
+            id: { in: completedIds },
+            createdAt: { gte: last30Days }
+          }
+        ]
+      },
+      orderBy: { updatedAt: "desc" }
+    }),
+    prisma.orderWorkflow.findMany({
+      where: {
+        OR: [
+          { id: { notIn: completedIds } },
+          {
+            id: { in: completedIds },
+            createdAt: { gte: last30Days }
+          }
+        ]
+      }
+    }),
   ]);
 
   const orders = buildOrdersFromCache(cached, states);
