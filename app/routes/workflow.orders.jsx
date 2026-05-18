@@ -232,6 +232,8 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--blue);cursor:poin
 .date-filter-wrap{display:flex;align-items:center;gap:6px;}
 .date-lbl{font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-3);font-weight:600;}
 .date-input{font-family:'DM Sans',sans-serif;font-size:13px;padding:6px 10px;cursor:pointer;}
+.tag-wrap{display:flex;gap:4px;flex-wrap:wrap;max-width:180px;}
+.tag-chip{font-size:9px;font-weight:500;padding:2px 6px;border-radius:4px;background:var(--surface-3);color:var(--text-2);border:1px solid var(--border-md);white-space:nowrap;}
 `;
 
 // ── CONSTANTS ─────────────────────────────────────────────────────────────────
@@ -377,6 +379,7 @@ export const loader = async ({ request }) => {
       note: st?.note || "",
       shopifyNote: c.shopifyNote || "",
       paymentStatus: c.paymentStatus || "N/A",
+      tags: c.tags || "",
     };
   });
 
@@ -521,7 +524,7 @@ export default function WorkflowOrders() {
       }
       if (query) {
         const q = query.toLowerCase();
-        if (![o.id,o.customer,o.item,o.sku,o.shopifyId,o.shopifyNote,o.paymentStatus].join(" ").toLowerCase().includes(q)) return false;
+        if (![o.id,o.customer,o.item,o.sku,o.shopifyId,o.shopifyNote,o.paymentStatus,o.tags].join(" ").toLowerCase().includes(q)) return false;
       }
       return true;
     });
@@ -1053,12 +1056,13 @@ export default function WorkflowOrders() {
                 <th>Priority</th>
                 <th>Status</th>
                 <th>Note</th>
+                <th>Tags</th>
                 <th>Aging</th>
               </tr>
             </thead>
             <tbody>
               {pageItems.length===0?(
-                <tr><td colSpan={11}>
+                <tr><td colSpan={12}>
                   <div className="empty-box"><div className="empty-glyph">◎</div><div>No orders match your filters</div></div>
                 </td></tr>
               ):pageItems.map(o=>(
@@ -1093,6 +1097,15 @@ export default function WorkflowOrders() {
                   <td><span className={`badge ${STATUS_BADGE[o.status]||"b-slate"}`}>{o.status}</span></td>
                   <td style={{fontSize:11,color:"var(--text-3)",maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}
                     title={o.shopifyNote||""}>{o.shopifyNote||"—"}</td>
+                  <td>
+                    <div className="tag-wrap">
+                      {o.tags
+                        ? o.tags.split(",").map(t => t.trim()).filter(Boolean).map((t, idx) => (
+                            <span key={idx} className="tag-chip">{t}</span>
+                          ))
+                        : "—"}
+                    </div>
+                  </td>
                   <td><span className={o.aging>=2?"age-warn":"age-ok"}>{o.aging}d</span></td>
                 </tr>
               ))}

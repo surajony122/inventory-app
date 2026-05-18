@@ -416,6 +416,7 @@ async function fetchAndCacheFromShopify(admin) {
         orderDate:fmtDate(o.createdAt),createdAt:o.createdAt,
         paymentStatus:PAY_MAP[o.displayFinancialStatus]||"N/A",
         priority,shopifyNote:o.note||"",
+        tags:(o.tags||[]).join(", "),
       };
       return prisma.orderCache.upsert({
         where:{id:o.id},

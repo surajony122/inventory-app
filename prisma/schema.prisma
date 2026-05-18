@@ -64,6 +64,7 @@ model OrderCache {
   paymentStatus String?
   priority      String   @default("Medium")
   shopifyNote   String?
+  tags          String?  // Comma-separated list of order tags
   updatedAt     DateTime @updatedAt
 }
 

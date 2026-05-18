@@ -39,6 +39,7 @@ function mapOrder(order) {
       paymentStatus: PAY_MAP[order.financial_status] || "N/A",
       priority,
       shopifyNote:   order.note || "",
+      tags:          order.tags || "",
     },
   };
 }
