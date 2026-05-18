@@ -320,8 +320,12 @@ function getSingleActions(status){
 
 // ── HELPERS (loader-side) ─────────────────────────────────────────────────────
 function buildOrdersFromCache(cached, states) {
+  const stateMap = {};
+  states.forEach(s => {
+    stateMap[s.id] = s;
+  });
   return cached.map(c=>{
-    const st=states.find(s=>s.id===c.id);
+    const st=stateMap[c.id];
     const aging=c.createdAt?getAging(c.createdAt):0;
     return {
       shopifyId:c.id, id:c.name,

@@ -292,7 +292,7 @@ function getSingleActions(status){
   }
 }
 
-const SERVER_PAGE_SIZE = 10000;
+const PAGE_SIZE = 50;
 
 // ── LOADER ────────────────────────────────────────────────────────────────────
 export const loader = async ({ request }) => {
@@ -300,24 +300,41 @@ export const loader = async ({ request }) => {
   const user = await findWorkflowUser(email);
   if (!user) return redirect("/workflow");
 
-  const url = new URL(request.url);
-  const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
-  const skip = (page - 1) * SERVER_PAGE_SIZE;
+  // Get IDs of completed (Dispatched/Cancelled) orders to exclude at database level
+  const completedWorkflows = await prisma.orderWorkflow.findMany({
+    where: {
+      status: { in: ["Dispatched", "Cancelled"] }
+    },
+    select: { id: true }
+  });
+  const completedIds = completedWorkflows.map(w => w.id);
 
   const [total, cached, states] = await Promise.all([
-    prisma.orderCache.count(),
-    prisma.orderCache.findMany({
-      orderBy: { createdAt: "desc" },
-      skip,
-      take: SERVER_PAGE_SIZE,
+    prisma.orderCache.count({
+      where: {
+        id: { notIn: completedIds }
+      }
     }),
-    prisma.orderWorkflow.findMany(),
+    prisma.orderCache.findMany({
+      where: {
+        id: { notIn: completedIds }
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.orderWorkflow.findMany({
+      where: {
+        id: { notIn: completedIds }
+      }
+    }),
   ]);
 
-  const totalPages = Math.max(1, Math.ceil(total / SERVER_PAGE_SIZE));
+  const stateMap = {};
+  states.forEach(s => {
+    stateMap[s.id] = s;
+  });
 
   const orders = cached.map(c => {
-    const st = states.find(s => s.id === c.id);
+    const st = stateMap[c.id];
     const aging = c.createdAt ? getAging(c.createdAt) : 0;
     return {
       shopifyId: c.id,
@@ -343,8 +360,6 @@ export const loader = async ({ request }) => {
   return {
     orders,
     user: { email: user.email, name: user.name, access: user.access },
-    page,
-    totalPages,
     total,
     isEmpty: total === 0,
   };
@@ -408,9 +423,8 @@ export const action = async ({ request }) => {
   return {ok:false};
 };
 
-// ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function WorkflowOrders() {
-  const { orders: init, isEmpty, user, page: serverPage, totalPages, total } = useLoaderData();
+  const { orders: init, isEmpty, user } = useLoaderData();
   const submit = useSubmit();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
@@ -431,9 +445,12 @@ export default function WorkflowOrders() {
   const [query,       setQuery]       = useState("");
   const [statusF,     setStatusF]     = useState("all");
   const [priorityF,   setPriorityF]   = useState("all");
+  const [payF,        setPayF]        = useState("all");
+  const [delayF,      setDelayF]      = useState("all");
   const [activeSKU,   setActiveSKU]   = useState(null);
   const [skuView,     setSkuView]     = useState("all");
   const [selIds,      setSelIds]      = useState(new Set());
+  const [page,        setPage]        = useState(1);
   const [selected,    setSelected]    = useState(null);
   const [noteVal,     setNoteVal]     = useState("");
   const [bulkPending, setBulkPending] = useState(null);
@@ -441,8 +458,6 @@ export default function WorkflowOrders() {
 
   useEffect(() => {
     setOrders(init);
-    setSelIds(new Set());
-    setActiveSKU(null);
   }, [init]);
 
   function showToast(msg, type="") {
@@ -451,8 +466,8 @@ export default function WorkflowOrders() {
   }
 
   function changeRole(r) {
-    setRole(r); setActiveSKU(null); setSkuView("all"); setSelIds(new Set());
-    setQuery(""); setStatusF("all"); setPriorityF("all");
+    setRole(r); setActiveSKU(null); setSkuView("all"); setSelIds(new Set()); setPage(1);
+    setQuery(""); setStatusF("all"); setPriorityF("all"); setPayF("all"); setDelayF("all");
   }
 
   // ── visible orders ──────────────────────────────────────────────────────
@@ -464,16 +479,20 @@ export default function WorkflowOrders() {
       if (role==="production" && skuView==="active" && o.status!=="In Production") return false;
       if (statusF!=="all" && o.status!==statusF) return false;
       if (priorityF!=="all" && o.priority!==priorityF) return false;
+      if (payF!=="all" && o.paymentStatus!==payF) return false;
+      if (delayF==="delayed" && o.aging<2) return false;
       if (query) {
         const q = query.toLowerCase();
-        if (![o.id,o.customer,o.item,o.sku].join(" ").toLowerCase().includes(q)) return false;
+        if (![o.id,o.customer,o.item,o.sku,o.shopifyId,o.shopifyNote,o.paymentStatus].join(" ").toLowerCase().includes(q)) return false;
       }
       return true;
     });
-  }, [orders,role,activeSKU,skuView,statusF,priorityF,query]);
+  }, [orders,role,activeSKU,skuView,statusF,priorityF,payF,delayF,query]);
 
-  // All visible orders on this server page (no client-side slicing)
-  const pageItems = visible;
+  // Client-side paginated items
+  const totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+  const curPage = Math.min(page, totalPages);
+  const pageItems = visible.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE);
 
   // ── stats ───────────────────────────────────────────────────────────────
   const roleOrders = useMemo(()=>orders.filter(o=>ROLE_FILTER[role](o)), [orders,role]);
@@ -566,26 +585,26 @@ export default function WorkflowOrders() {
   const allPageSel=visible.length>0&&visible.every(o=>selIds.has(o.shopifyId));
   const someSel=visible.some(o=>selIds.has(o.shopifyId));
 
-  // ── Pagination (server-side) ──────────────────────────────────────────────
+  // ── Pagination (client-side) ──────────────────────────────────────────────
   function Pagination() {
     const showCount = visible.length;
-    const start = (serverPage - 1) * SERVER_PAGE_SIZE + 1;
-    const end = Math.min(serverPage * SERVER_PAGE_SIZE, total);
+    const start = showCount === 0 ? 0 : (curPage - 1) * PAGE_SIZE + 1;
+    const end = Math.min(curPage * PAGE_SIZE, showCount);
     return (
       <div className="pg-row">
         <span>
           {showCount < orders.length
             ? `${showCount} filtered · `
             : ""}
-          Orders {start}–{end} of {total} · Page {serverPage} of {totalPages}
+          Orders {start}–{end} of {showCount} · Page {curPage} of {totalPages}
         </span>
         {totalPages > 1 && (
           <div className="pg-btns">
-            <button className="pg-btn" disabled={serverPage <= 1}
-              onClick={() => navigate(`?page=${serverPage - 1}`)}>‹ Prev</button>
-            <button className="pg-btn cur">{serverPage}</button>
-            <button className="pg-btn" disabled={serverPage >= totalPages}
-              onClick={() => navigate(`?page=${serverPage + 1}`)}>Next ›</button>
+            <button className="pg-btn" disabled={curPage <= 1}
+              onClick={() => setPage(curPage - 1)}>‹ Prev</button>
+            <button className="pg-btn cur">{curPage}</button>
+            <button className="pg-btn" disabled={curPage >= totalPages}
+              onClick={() => setPage(curPage + 1)}>Next ›</button>
           </div>
         )}
       </div>
@@ -807,19 +826,49 @@ export default function WorkflowOrders() {
         <div className="top-row">
           {role==="production" ? (
             <div className="stats-row">
-              <div className="stat-card"><div className="stat-label">Total Orders</div><div className="stat-num">{stats.total}</div></div>
-              <div className="stat-card"><div className="stat-label">Total Units</div><div className="stat-num">{stats.units}</div></div>
-              <div className="stat-card" style={{"--accent-line":"#B8782A"}}><div className="stat-label">Queued</div><div className="stat-num">{stats.queued}</div></div>
-              <div className="stat-card" style={{"--accent-line":"#2A5F9A"}}><div className="stat-label">In Production</div><div className="stat-num">{stats.active}</div></div>
-              <div className="stat-card" style={{"--accent-line":"#9A2A3A"}}><div className="stat-label">Delayed 2d+</div><div className={`stat-num${stats.delayed>0?" c-rose":""}`}>{stats.delayed}</div></div>
+              <div className="stat-card" style={{cursor:"pointer"}} onClick={()=>{setStatusF("all");setDelayF("all");setActiveSKU(null);setPage(1);}}>
+                <div className="stat-label">Total Orders</div>
+                <div className="stat-num">{stats.total}</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-label">Total Units</div>
+                <div className="stat-num">{stats.units}</div>
+              </div>
+              <div className="stat-card" style={{"--accent-line":"#B8782A",cursor:"pointer"}} onClick={()=>{setStatusF("Sent to Production");setDelayF("all");setActiveSKU(null);setPage(1);}}>
+                <div className="stat-label">Queued</div>
+                <div className="stat-num">{stats.queued}</div>
+              </div>
+              <div className="stat-card" style={{"--accent-line":"#2A5F9A",cursor:"pointer"}} onClick={()=>{setStatusF("In Production");setDelayF("all");setActiveSKU(null);setPage(1);}}>
+                <div className="stat-label">In Production</div>
+                <div className="stat-num">{stats.active}</div>
+              </div>
+              <div className="stat-card" style={{"--accent-line":"#9A2A3A",cursor:"pointer"}} onClick={()=>{setDelayF("delayed");setStatusF("all");setActiveSKU(null);setPage(1);}}>
+                <div className="stat-label">Delayed 2d+</div>
+                <div className={`stat-num${stats.delayed>0?" c-rose":""}`}>{stats.delayed}</div>
+              </div>
             </div>
           ) : (
             <div className="stats-row">
-              <div className="stat-card"><div className="stat-label">Total Orders</div><div className="stat-num">{stats.total}</div></div>
-              <div className="stat-card" style={{"--accent-line":"#B8782A"}}><div className="stat-label">Inventory Check</div><div className="stat-num">{stats.inv}</div></div>
-              <div className="stat-card" style={{"--accent-line":"#2A5F9A"}}><div className="stat-label">In Production</div><div className="stat-num">{stats.prod}</div></div>
-              <div className="stat-card" style={{"--accent-line":"#2A7A6A"}}><div className="stat-label">Ready to Dispatch</div><div className="stat-num">{stats.disp}</div></div>
-              <div className="stat-card" style={{"--accent-line":"#9A2A3A"}}><div className="stat-label">Delayed 2d+</div><div className={`stat-num${stats.delayed>0?" c-rose":""}`}>{stats.delayed}</div></div>
+              <div className="stat-card" style={{cursor:"pointer"}} onClick={()=>{setStatusF("all");setDelayF("all");setActiveSKU(null);setPage(1);}}>
+                <div className="stat-label">Total Orders</div>
+                <div className="stat-num">{stats.total}</div>
+              </div>
+              <div className="stat-card" style={{"--accent-line":"#B8782A",cursor:"pointer"}} onClick={()=>{setStatusF("Awaiting Inventory Check");setDelayF("all");setActiveSKU(null);setPage(1);}}>
+                <div className="stat-label">Inventory Check</div>
+                <div className="stat-num">{stats.inv}</div>
+              </div>
+              <div className="stat-card" style={{"--accent-line":"#2A5F9A",cursor:"pointer"}} onClick={()=>{setStatusF("In Production");setDelayF("all");setActiveSKU(null);setPage(1);}}>
+                <div className="stat-label">In Production</div>
+                <div className="stat-num">{stats.prod}</div>
+              </div>
+              <div className="stat-card" style={{"--accent-line":"#2A7A6A",cursor:"pointer"}} onClick={()=>{setStatusF("Ready for Dispatch");setDelayF("all");setActiveSKU(null);setPage(1);}}>
+                <div className="stat-label">Ready to Dispatch</div>
+                <div className="stat-num">{stats.disp}</div>
+              </div>
+              <div className="stat-card" style={{"--accent-line":"#9A2A3A",cursor:"pointer"}} onClick={()=>{setDelayF("delayed");setStatusF("all");setActiveSKU(null);setPage(1);}}>
+                <div className="stat-label">Delayed 2d+</div>
+                <div className={`stat-num${stats.delayed>0?" c-rose":""}`}>{stats.delayed}</div>
+              </div>
             </div>
           )}
 
@@ -833,12 +882,12 @@ export default function WorkflowOrders() {
                 </div>
               : delayed.slice(0,6).map(o=>(
                 <div key={o.shopifyId} className="alert-item" onClick={()=>{setSelected(o);setNoteVal(o.note);}}>
-                  <div className="alert-thumb-ph">◈</div>
-                  <div className="alert-info">
-                    <div className="alert-id">{o.id}</div>
-                    <div className="alert-status">{o.status}</div>
-                    <div className="alert-age">{o.aging}d pending</div>
-                  </div>
+                   <div className="alert-thumb-ph">◈</div>
+                   <div className="alert-info">
+                     <div className="alert-id">{o.id}</div>
+                     <div className="alert-status">{o.status}</div>
+                     <div className="alert-age">{o.aging}d pending</div>
+                   </div>
                 </div>
               ))}
           </div>
@@ -847,11 +896,27 @@ export default function WorkflowOrders() {
         {/* SKU Production Board (production role only) */}
         <SKUBoard/>
 
-        {/* SKU active filter bar */}
-        {activeSKU&&(
+        {/* Active filters bar */}
+        {(activeSKU || statusF!=="all" || priorityF!=="all" || payF!=="all" || delayF!=="all" || query) && (
           <div className="filter-bar">
-            <span>Filtering by SKU: <strong>{activeSKU}</strong></span>
-            <button className="filter-clear" onClick={()=>setActiveSKU(null)}>Clear filter</button>
+            <span>
+              Active Filters:{" "}
+              {activeSKU && <span>SKU <strong>{activeSKU}</strong> </span>}
+              {statusF!=="all" && <span>Status <strong>{statusF}</strong> </span>}
+              {priorityF!=="all" && <span>Priority <strong>{priorityF}</strong> </span>}
+              {payF!=="all" && <span>Payment <strong>{payF}</strong> </span>}
+              {delayF==="delayed" && <span>Aging <strong>Delayed (2d+)</strong> </span>}
+              {query && <span>Search <strong>"{query}"</strong> </span>}
+            </span>
+            <button className="filter-clear" onClick={()=>{
+              setActiveSKU(null);
+              setStatusF("all");
+              setPriorityF("all");
+              setPayF("all");
+              setDelayF("all");
+              setQuery("");
+              setPage(1);
+            }}>Clear all filters</button>
           </div>
         )}
 
@@ -880,19 +945,32 @@ export default function WorkflowOrders() {
               <circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l2.5 2.5"/>
             </svg>
             <input type="text" placeholder="Search order, customer, SKU…" value={query}
-              onChange={e=>{setQuery(e.target.value);}}/>
+              onChange={e=>{setQuery(e.target.value);setPage(1);}}/>
           </div>
-          <select className="tb-sel" value={statusF} onChange={e=>{setStatusF(e.target.value);}}>
+          <select className="tb-sel" value={statusF} onChange={e=>{setStatusF(e.target.value);setPage(1);}}>
             <option value="all">All statuses</option>
             {(role==="production" ? PROD_STATUSES : Object.keys(STATUS_BADGE)).map(s=>(
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
-          <select className="tb-sel" value={priorityF} onChange={e=>{setPriorityF(e.target.value);}}>
+          <select className="tb-sel" value={priorityF} onChange={e=>{setPriorityF(e.target.value);setPage(1);}}>
             <option value="all">All priorities</option>
             <option value="High">High</option>
             <option value="Medium">Medium</option>
             <option value="Low">Low</option>
+          </select>
+          <select className="tb-sel" value={payF} onChange={e=>{setPayF(e.target.value);setPage(1);}}>
+            <option value="all">All payments</option>
+            <option value="Paid">Paid</option>
+            <option value="Payment pending">Payment pending</option>
+            <option value="Authorized">Authorized</option>
+            <option value="Partially paid">Partially paid</option>
+            <option value="Refunded">Refunded</option>
+            <option value="Voided">Voided</option>
+          </select>
+          <select className="tb-sel" value={delayF} onChange={e=>{setDelayF(e.target.value);setPage(1);}}>
+            <option value="all">All aging</option>
+            <option value="delayed">Delayed (2d+)</option>
           </select>
           <button className="dl-btn" onClick={exportCSV}>
             <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" width="13" height="13">
