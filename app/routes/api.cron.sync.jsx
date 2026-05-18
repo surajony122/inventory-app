@@ -54,7 +54,9 @@ async function fetchAllOrders(shop, accessToken) {
 
     if (isFirst) {
       params.set("status", "any");
-      params.set("order", "created_at asc");
+      params.set("order", "updated_at desc");
+      const lastMonth = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      params.set("updated_at_min", lastMonth);
       params.set("fields", "id,name,created_at,financial_status,customer,line_items,tags,note");
     } else {
       // When using page_info, no other filters allowed
