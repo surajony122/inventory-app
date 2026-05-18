@@ -131,7 +131,7 @@ html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text
 .bulk-x:hover{color:#fff;}
 
 /* TABLE */
-.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow-xs);}
+.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow-x:auto;overflow-y:hidden;box-shadow:var(--shadow-xs);-webkit-overflow-scrolling:touch;}
 .ord-table{width:100%;border-collapse:collapse;}
 .ord-table thead tr{border-bottom:1px solid var(--border-md);}
 .ord-table th{text-align:left;padding:10px 14px;font-size:10px;font-weight:500;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;background:var(--surface-2);}
@@ -1115,15 +1115,18 @@ export default function OrdersPage(){
               ):pageItems.map(o=>(
                 <tr key={o.shopifyId} className={selIds.has(o.shopifyId)?"sel":""}
                   onClick={e=>{
+                    e.stopPropagation();
                     if(e.target.type==="checkbox") return;
+                    if(e.target.closest("td")?.dataset?.noopen) return;
                     if(selIds.size>0){
                       const n=new Set(selIds);
                       selIds.has(o.shopifyId)?n.delete(o.shopifyId):n.add(o.shopifyId);
                       setSelIds(n); return;
                     }
-                    setSelected(o); setNoteVal(o.note);
+                    if(selected?.shopifyId===o.shopifyId) return;
+                    setSelected(o); setNoteVal(o.note||"");
                   }}>
-                  <td onClick={e=>e.stopPropagation()}>
+                  <td data-noopen="1" onClick={e=>e.stopPropagation()}>
                     <input type="checkbox" checked={selIds.has(o.shopifyId)}
                       onChange={e=>{
                         const n=new Set(selIds);
