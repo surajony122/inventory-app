@@ -449,7 +449,7 @@ export const loader = async ({ request }) => {
   });
   const completedIds = completedWorkflows.map(w => w.id);
 
-  const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   const [cached, states] = await Promise.all([
     prisma.orderCache.findMany({
