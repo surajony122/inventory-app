@@ -50,7 +50,7 @@ async function fetchAllOrders(shop, accessToken) {
   let total    = 0;
 
   while (isFirst || pageInfo) {
-    const params = new URLSearchParams({ limit: "250" });
+    const params = new URLSearchParams({ limit: "50" });
 
     if (isFirst) {
       params.set("status", "any");
@@ -74,16 +74,14 @@ async function fetchAllOrders(shop, accessToken) {
     const data   = await res.json();
     const orders = data.orders || [];
 
-    await Promise.all(
-      orders.map(o => {
-        const { id, data } = mapOrder(o);
-        return prisma.orderCache.upsert({
-          where:  { id },
-          update: data,
-          create: { id, ...data },
-        });
-      })
-    );
+    for (const o of orders) {
+      const { id, data } = mapOrder(o);
+      await prisma.orderCache.upsert({
+        where:  { id },
+        update: data,
+        create: { id, ...data },
+      });
+    }
 
     total += orders.length;
     console.log(`[cron-sync] Page done — ${orders.length} orders (running total: ${total})`);
