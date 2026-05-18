@@ -524,7 +524,7 @@ export default function WorkflowOrders() {
       }
       if (query) {
         const q = query.toLowerCase();
-        if (![o.id,o.customer,o.item,o.sku,o.shopifyId,o.shopifyNote,o.paymentStatus,o.tags].join(" ").toLowerCase().includes(q)) return false;
+        if (![o.id,o.customer,o.item,o.sku,o.shopifyId,o.shopifyNote,o.paymentStatus,o.tags,o.owner].join(" ").toLowerCase().includes(q)) return false;
       }
       return true;
     });
@@ -1055,6 +1055,7 @@ export default function WorkflowOrders() {
                 <th>Payment</th>
                 <th>Priority</th>
                 <th>Status</th>
+                <th>Owner</th>
                 <th>Note</th>
                 <th>Tags</th>
                 <th>Aging</th>
@@ -1062,7 +1063,7 @@ export default function WorkflowOrders() {
             </thead>
             <tbody>
               {pageItems.length===0?(
-                <tr><td colSpan={12}>
+                <tr><td colSpan={13}>
                   <div className="empty-box"><div className="empty-glyph">◎</div><div>No orders match your filters</div></div>
                 </td></tr>
               ):pageItems.map(o=>(
@@ -1095,6 +1096,7 @@ export default function WorkflowOrders() {
                   <td><span className={`badge ${PAY_BADGE[o.paymentStatus]||"b-slate"}`}>{o.paymentStatus}</span></td>
                   <td><span className={`badge ${PRI_BADGE[o.priority]||"b-slate"}`}>{o.priority}</span></td>
                   <td><span className={`badge ${STATUS_BADGE[o.status]||"b-slate"}`}>{o.status}</span></td>
+                  <td><span className="badge b-slate" style={{background:"var(--surface-3)",color:"var(--text)",borderColor:"var(--border-strong)",fontWeight:500}}>{o.owner}</span></td>
                   <td style={{fontSize:11,color:"var(--text-3)",maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}
                     title={o.shopifyNote||""}>{o.shopifyNote||"—"}</td>
                   <td>
