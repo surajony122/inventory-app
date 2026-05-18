@@ -340,17 +340,8 @@ export const loader = async ({ request }) => {
       },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.orderWorkflow.findMany({
-      where: {
-        OR: [
-          { id: { notIn: completedIds } },
-          {
-            id: { in: completedIds },
-            createdAt: { gte: last30Days }
-          }
-        ]
-      }
-    }),
+    // OrderWorkflow has no createdAt column — just fetch all matching IDs
+    prisma.orderWorkflow.findMany(),
   ]);
 
   const stateMap = {};
@@ -1086,15 +1077,7 @@ export default function WorkflowOrders() {
                       }}/>
                   </td>
                   <td>
-                    <div className="ord-id">
-                      <a href={`https://admin.shopify.com/store/theunniyarcha/orders/${o.shopifyId.split("/").pop()}`}
-                         target="_blank"
-                         rel="noopener noreferrer"
-                         style={{color:"var(--accent)",textDecoration:"none",fontWeight:600}}
-                         onClick={e=>e.stopPropagation()}>
-                        {o.id} ↗
-                      </a>
-                    </div>
+                    <div className="ord-id">{o.id}</div>
                     <div className="ord-sid">{o.orderDate}</div>
                   </td>
                   <td style={{fontSize:13}}>{o.customer}</td>
