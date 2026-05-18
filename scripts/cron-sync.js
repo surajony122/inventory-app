@@ -1,6 +1,6 @@
 import https from "https";
 
-const secret   = process.env.CRON_SECRET || "unnicharya_sync_secret_123";
+const secret   = "unnicharya_sync_secret_123";
 const hostname = "unnicharya-app.onrender.com";
 
 if (!secret) {

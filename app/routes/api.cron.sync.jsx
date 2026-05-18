@@ -102,7 +102,7 @@ async function fetchAllOrders(shop, accessToken) {
 export const action = async ({ request }) => {
   // Validate cron secret
   const secret = request.headers.get("x-cron-secret");
-  const expected = process.env.CRON_SECRET || "unnicharya_sync_secret_123";
+  const expected = "unnicharya_sync_secret_123";
   
   if (!secret || secret !== expected) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
