@@ -76,13 +76,19 @@ async function fetchAllOrders(shop, accessToken) {
     const data   = await res.json();
     const orders = data.orders || [];
 
-    for (const o of orders) {
-      const { id, data } = mapOrder(o);
-      await prisma.orderCache.upsert({
-        where:  { id },
-        update: data,
-        create: { id, ...data },
-      });
+    const chunkSize = 15;
+    for (let i = 0; i < orders.length; i += chunkSize) {
+      const chunk = orders.slice(i, i + chunkSize);
+      await Promise.all(
+        chunk.map(async (o) => {
+          const { id, data } = mapOrder(o);
+          await prisma.orderCache.upsert({
+            where:  { id },
+            update: data,
+            create: { id, ...data },
+          });
+        })
+      );
     }
 
     total += orders.length;
