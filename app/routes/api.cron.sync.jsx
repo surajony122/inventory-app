@@ -89,9 +89,15 @@ async function fetchAllOrders(shop, accessToken) {
     console.log(`[cron-sync] Page done — ${orders.length} orders (running total: ${total})`);
 
     // Parse Link header for next cursor
-    const link      = res.headers.get("link") || "";
-    const nextMatch = link.match(/<[^>]*[?&]page_info=([^&>]*).*?>;\s*rel="next"/);
-    pageInfo = nextMatch ? decodeURIComponent(nextMatch[1]) : null;
+    const link = res.headers.get("link") || "";
+    let nextPageInfo = null;
+    for (const part of link.split(",")) {
+      if (part.includes('rel="next"')) {
+        const match = part.match(/[?&]page_info=([^&>]+)/);
+        if (match) nextPageInfo = decodeURIComponent(match[1]);
+      }
+    }
+    pageInfo = nextPageInfo;
     isFirst  = false;
   }
 
