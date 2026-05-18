@@ -1142,7 +1142,15 @@ export default function OrdersPage(){
                   </td>
                   <td style={{padding:"8px 6px 8px 14px"}}><Thumb src={o.imageUrl}/></td>
                   <td>
-                    <div className="ord-id">{o.id}</div>
+                    <div className="ord-id">
+                      <a href={`https://admin.shopify.com/store/theunniyarcha/orders/${o.shopifyId.split("/").pop()}`}
+                         target="_blank"
+                         rel="noopener noreferrer"
+                         style={{color:"var(--accent)",textDecoration:"none",fontWeight:600}}
+                         onClick={e=>e.stopPropagation()}>
+                        {o.id} ↗
+                      </a>
+                    </div>
                     <div className="ord-sid">{o.orderDate}</div>
                   </td>
                   <td style={{fontSize:13}}>{o.customer}</td>
