@@ -229,6 +229,9 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--blue);cursor:poin
 
 @media(max-width:900px){.stats-row{grid-template-columns:repeat(3,1fr);}.top-row{flex-direction:column;}.alerts-panel{width:100%;}}
 @media(max-width:600px){.pg-main{padding:16px;}.pg-header{padding:0 16px;}.stats-row{grid-template-columns:repeat(2,1fr);}}
+.date-filter-wrap{display:flex;align-items:center;gap:6px;}
+.date-lbl{font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-3);font-weight:600;}
+.date-input{font-family:'DM Sans',sans-serif;font-size:13px;padding:6px 10px;cursor:pointer;}
 `;
 
 // ── CONSTANTS ─────────────────────────────────────────────────────────────────
@@ -447,6 +450,8 @@ export default function WorkflowOrders() {
   const [priorityF,   setPriorityF]   = useState("all");
   const [payF,        setPayF]        = useState("all");
   const [delayF,      setDelayF]      = useState("all");
+  const [startDate,   setStartDate]   = useState("");
+  const [endDate,     setEndDate]     = useState("");
   const [activeSKU,   setActiveSKU]   = useState(null);
   const [skuView,     setSkuView]     = useState("all");
   const [selIds,      setSelIds]      = useState(new Set());
@@ -468,6 +473,7 @@ export default function WorkflowOrders() {
   function changeRole(r) {
     setRole(r); setActiveSKU(null); setSkuView("all"); setSelIds(new Set()); setPage(1);
     setQuery(""); setStatusF("all"); setPriorityF("all"); setPayF("all"); setDelayF("all");
+    setStartDate(""); setEndDate("");
   }
 
   // ── visible orders ──────────────────────────────────────────────────────
@@ -481,13 +487,25 @@ export default function WorkflowOrders() {
       if (priorityF!=="all" && o.priority!==priorityF) return false;
       if (payF!=="all" && o.paymentStatus!==payF) return false;
       if (delayF==="delayed" && o.aging<2) return false;
+      if (startDate) {
+        const sD = new Date(startDate);
+        sD.setHours(0,0,0,0);
+        const oD = o.createdAt ? new Date(o.createdAt) : null;
+        if (!oD || oD < sD) return false;
+      }
+      if (endDate) {
+        const eD = new Date(endDate);
+        eD.setHours(23,59,59,999);
+        const oD = o.createdAt ? new Date(o.createdAt) : null;
+        if (!oD || oD > eD) return false;
+      }
       if (query) {
         const q = query.toLowerCase();
         if (![o.id,o.customer,o.item,o.sku,o.shopifyId,o.shopifyNote,o.paymentStatus].join(" ").toLowerCase().includes(q)) return false;
       }
       return true;
     });
-  }, [orders,role,activeSKU,skuView,statusF,priorityF,payF,delayF,query]);
+  }, [orders,role,activeSKU,skuView,statusF,priorityF,payF,delayF,startDate,endDate,query]);
 
   // Client-side paginated items
   const totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
@@ -897,7 +915,7 @@ export default function WorkflowOrders() {
         <SKUBoard/>
 
         {/* Active filters bar */}
-        {(activeSKU || statusF!=="all" || priorityF!=="all" || payF!=="all" || delayF!=="all" || query) && (
+        {(activeSKU || statusF!=="all" || priorityF!=="all" || payF!=="all" || delayF!=="all" || startDate || endDate || query) && (
           <div className="filter-bar">
             <span>
               Active Filters:{" "}
@@ -906,6 +924,8 @@ export default function WorkflowOrders() {
               {priorityF!=="all" && <span>Priority <strong>{priorityF}</strong> </span>}
               {payF!=="all" && <span>Payment <strong>{payF}</strong> </span>}
               {delayF==="delayed" && <span>Aging <strong>Delayed (2d+)</strong> </span>}
+              {startDate && <span>From <strong>{startDate}</strong> </span>}
+              {endDate && <span>To <strong>{endDate}</strong> </span>}
               {query && <span>Search <strong>"{query}"</strong> </span>}
             </span>
             <button className="filter-clear" onClick={()=>{
@@ -914,6 +934,8 @@ export default function WorkflowOrders() {
               setPriorityF("all");
               setPayF("all");
               setDelayF("all");
+              setStartDate("");
+              setEndDate("");
               setQuery("");
               setPage(1);
             }}>Clear all filters</button>
@@ -972,6 +994,14 @@ export default function WorkflowOrders() {
             <option value="all">All aging</option>
             <option value="delayed">Delayed (2d+)</option>
           </select>
+          <div className="date-filter-wrap">
+            <span className="date-lbl">From:</span>
+            <input type="date" className="tb-sel date-input" value={startDate} onChange={e=>{setStartDate(e.target.value);setPage(1);}}/>
+          </div>
+          <div className="date-filter-wrap">
+            <span className="date-lbl">To:</span>
+            <input type="date" className="tb-sel date-input" value={endDate} onChange={e=>{setEndDate(e.target.value);setPage(1);}}/>
+          </div>
           <button className="dl-btn" onClick={exportCSV}>
             <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" width="13" height="13">
               <path d="M7 1v8M4 6l3 3 3-3M2 11h10"/>
