@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLoaderData, useSubmit, redirect, useNavigate, Link } from "react-router";
+import { useLoaderData, useSubmit, redirect, useNavigate, Link, useRevalidator } from "react-router";
 import { wfCookie } from "../workflow.cookie.server";
 import { findWorkflowUser } from "../workflow.users.server";
 import prisma from "../db.server";
@@ -413,6 +413,14 @@ export default function WorkflowOrders() {
   const { orders: init, isEmpty, user, page: serverPage, totalPages, total } = useLoaderData();
   const submit = useSubmit();
   const navigate = useNavigate();
+  const revalidator = useRevalidator();
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      revalidator.revalidate();
+    }, 5000); // Poll every 5 seconds
+    return () => clearInterval(interval);
+  }, [revalidator]);
 
   // Determine which role tabs this user can access
   const accessibleRoles = ROLES.filter(r => user?.access?.includes(r));
