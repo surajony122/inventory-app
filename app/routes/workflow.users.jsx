@@ -20,11 +20,14 @@ const CSS = `
 }
 html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
 
-.pg-header{background:var(--text);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:60;}
+.pg-header{background:var(--text);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
 .brand{display:flex;align-items:center;gap:10px;}
-.brand-name{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:#fff;}
-.hd-link{font-size:11px;font-weight:500;padding:5px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;}
-.hd-link:hover{background:rgba(255,255,255,0.12);color:#fff;}
+.brand-mark{width:22px;height:22px;border:1.5px solid rgba(255,255,255,0.85);border-radius:6px;display:inline-flex;align-items:center;justify-content:center;}
+.brand-name{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:#fff;}
+.brand-tag{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1px;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);padding:2px 6px;border-radius:4px;margin-left:4px;font-family:'DM Sans',sans-serif;}
+.hd-right{display:flex;align-items:center;gap:16px;}
+.hd-link{font-size:11px;font-weight:500;padding:6px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.75);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;font-family:'DM Sans',sans-serif;}
+.hd-link:hover,.hd-link.active{background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.35);}
 
 .pg-main{padding:24px 28px;max-width:1000px;margin:0 auto;}
 .section-title{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;}
@@ -128,12 +131,17 @@ export const action = async ({ request }) => {
     return { ok: true };
   }
 
+  if (type === "logout") {
+    const cookieStr = await wfCookie.serialize("", { maxAge: 0 });
+    return redirect("/workflow", { headers: { "Set-Cookie": cookieStr } });
+  }
+
   return { ok: false };
 };
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function WorkflowUsers() {
-  const { users } = useLoaderData();
+  const { users, currentUser } = useLoaderData();
   const submit = useSubmit();
 
   const [newName, setNewName] = useState("");
@@ -178,6 +186,12 @@ export default function WorkflowUsers() {
     submit(fd, { method: "POST" });
   }
 
+  function doLogout() {
+    const fd = new FormData();
+    fd.append("type", "logout");
+    submit(fd, { method: "POST" });
+  }
+
   return (
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -187,10 +201,30 @@ export default function WorkflowUsers() {
 
       <header className="pg-header">
         <div className="brand">
+          <div className="brand-mark">
+            <svg viewBox="0 0 16 16" fill="none" width="16" height="16">
+              <circle cx="8" cy="5.5" r="2.5" stroke="rgba(255,255,255,0.85)" strokeWidth="1.3"/>
+              <path d="M3 14c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="rgba(255,255,255,0.85)" strokeWidth="1.3" strokeLinecap="round"/>
+            </svg>
+          </div>
           <span className="brand-name">Unniyarcha</span>
+          <span className="brand-tag">team workflow</span>
         </div>
-        <div>
-          <Link to="/workflow/orders" className="hd-link">← Back to Dashboard</Link>
+
+        <div className="hd-right">
+          {currentUser?.name && (
+            <span style={{fontSize:11,color:"rgba(255,255,255,0.45)",fontFamily:"'DM Sans',sans-serif"}}>
+              {currentUser.name}
+            </span>
+          )}
+          <Link to="/workflow/orders" className="hd-link">Orders Workflow</Link>
+          {(currentUser?.access?.includes("inventory") || currentUser?.access?.includes("admin")) && (
+            <Link to="/workflow/inventory" className="hd-link">Warehouse Inventory</Link>
+          )}
+          {currentUser?.access?.includes("admin") && (
+            <Link to="/workflow/users" className="hd-link active">Manage Users</Link>
+          )}
+          <button className="hd-link" onClick={doLogout}>Sign Out</button>
         </div>
       </header>
 

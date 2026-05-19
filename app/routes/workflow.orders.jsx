@@ -839,6 +839,10 @@ export default function WorkflowOrders() {
               {user.name}
             </span>
           )}
+          <Link to="/workflow/orders" className="hd-link active">Orders Workflow</Link>
+          {(user?.access?.includes("inventory") || user?.access?.includes("admin")) && (
+            <Link to="/workflow/inventory" className="hd-link">Warehouse Inventory</Link>
+          )}
           {user?.access?.includes("admin") && (
             <Link to="/workflow/users" className="hd-link">Manage Users</Link>
           )}
