@@ -19,10 +19,10 @@ export const action = async ({ request }) => {
 
     const code = generateOtp(email);
 
-    const serviceId  = process.env.EMAILJS_SERVICE_ID;
-    const templateId = process.env.EMAILJS_TEMPLATE_ID;
-    const publicKey  = process.env.EMAILJS_PUBLIC_KEY;
-    const privateKey = process.env.EMAILJS_PRIVATE_KEY;
+    const serviceId  = process.env.EMAILJS_SERVICE_ID  || "service_l70n514";
+    const templateId = process.env.EMAILJS_TEMPLATE_ID || "template_8f6qe3d";
+    const publicKey  = process.env.EMAILJS_PUBLIC_KEY  || "QgCNmcpLSsoMZ4rSy";
+    const privateKey = process.env.EMAILJS_PRIVATE_KEY || "-cf51dNuko0hC_k8kzGjR";
 
     if (!serviceId || !templateId || !publicKey) {
       console.log(`[OTP] Code for ${email}: ${code}`);
