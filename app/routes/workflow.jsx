@@ -2,9 +2,11 @@ import { Outlet, redirect, useActionData } from "react-router";
 import { wfCookie } from "../workflow.cookie.server";
 import { findWorkflowUser } from "../workflow.users.server";
 import { generateOtp, verifyOtp } from "../otp.server";
+import { loadEnv } from "../env.server";
 
 // POST to /workflow is routed here (parent layout) not to the index child
 export const action = async ({ request }) => {
+  loadEnv();
   const fd   = await request.formData();
   const step = fd.get("step") || "email";
 

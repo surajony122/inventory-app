@@ -3,6 +3,7 @@ import { wfCookie } from "../workflow.cookie.server";
 import { findWorkflowUser } from "../workflow.users.server";
 import { redirect, useLoaderData, useSubmit, useNavigation, Link } from "react-router";
 import { useState, useMemo, useEffect } from "react";
+import { loadEnv } from "../env.server";
 
 // ── CSS Style ─────────────────────────────────────────────────────────────────
 const CSS = `
@@ -104,6 +105,7 @@ html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text
 `;
 
 export const loader = async ({ request }) => {
+  loadEnv();
   const email = await wfCookie.parse(request.headers.get("Cookie"));
   const user = await findWorkflowUser(email);
   if (!user) return redirect("/workflow");
