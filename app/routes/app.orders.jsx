@@ -451,7 +451,7 @@ export const loader = async ({ request }) => {
 
   const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-  const [cached, states] = await Promise.all([
+  const [cached, states, inventory] = await Promise.all([
     prisma.orderCache.findMany({
       where: {
         OR: [
@@ -466,11 +466,12 @@ export const loader = async ({ request }) => {
     }),
     // OrderWorkflow has no createdAt column — just fetch all records
     prisma.orderWorkflow.findMany(),
+    prisma.inventory.findMany()
   ]);
 
   const orders = buildOrdersFromCache(cached, states);
   const lastSync = cached.length>0 ? cached[0].updatedAt?.toISOString()||null : null;
-  return { orders, lastSync, isEmpty: cached.length===0 };
+  return { orders, inventory, lastSync, isEmpty: cached.length===0 };
 };
 
 // ── ACTION ────────────────────────────────────────────────────────────────────
@@ -539,7 +540,7 @@ export const action = async ({ request }) => {
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function OrdersPage(){
-  const {orders:init, lastSync:initLastSync, isEmpty}=useLoaderData();
+  const {orders:init, inventory:initInv, lastSync:initLastSync, isEmpty}=useLoaderData();
   const submit=useSubmit();
   const { search }=useLocation();
 
@@ -559,8 +560,11 @@ export default function OrdersPage(){
   const [noteVal,     setNoteVal]     = useState("");
   const [bulkPending, setBulkPending] = useState(null);
   const [toast,       setToast]       = useState(null);
+  const [inventory,   setInventory]   = useState(initInv || []);
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   useEffect(()=>{ setOrders(init); },[init]);
+  useEffect(()=>{ setInventory(initInv || []); },[initInv]);
 
   const { revalidate, state } = useRevalidator();
   useEffect(() => {
@@ -621,6 +625,45 @@ export default function OrdersPage(){
   const totalPages=Math.max(1,Math.ceil(visible.length/PAGE_SIZE));
   const curPage=Math.min(page,totalPages);
   const pageItems=visible.slice((curPage-1)*PAGE_SIZE,curPage*PAGE_SIZE);
+
+  // ── analytics ─────────────────────────────────────────────────────────────
+  const analytics = useMemo(() => {
+    const skuCounts = {};
+    orders.forEach(o => {
+      if (o.status === "Cancelled" || o.status === "Dispatched") return;
+      if (!skuCounts[o.sku]) skuCounts[o.sku] = { sku: o.sku, name: o.item, qty: 0 };
+      skuCounts[o.sku].qty += o.qty;
+    });
+    const trending = Object.values(skuCounts).sort((a,b) => b.qty - a.qty).slice(0, 5);
+
+    const invMap = {};
+    inventory.forEach(i => { if (i.sku) invMap[i.sku] = i; });
+    
+    const lowStock = [];
+    const outOfStockOrders = [];
+    
+    Object.values(skuCounts).forEach(s => {
+      if(s.sku === "—") return;
+      const inv = invMap[s.sku];
+      if (inv) {
+        if (inv.quantity <= 0) lowStock.push({ ...s, invQty: inv.quantity, status: "Out of Stock" });
+        else if (inv.quantity <= 10) lowStock.push({ ...s, invQty: inv.quantity, status: "Low Stock" });
+      } else {
+        lowStock.push({ ...s, invQty: 0, status: "Out of Stock (No Data)" });
+      }
+    });
+
+    orders.forEach(o => {
+      if (o.status === "Cancelled" || o.status === "Dispatched") return;
+      if (o.sku === "—") return;
+      const inv = invMap[o.sku];
+      if (!inv || inv.quantity <= 0) outOfStockOrders.push(o);
+    });
+
+    lowStock.sort((a,b) => a.invQty - b.invQty);
+
+    return { trending, lowStock: lowStock.slice(0, 10), outOfStockOrders: outOfStockOrders.slice(0, 10) };
+  }, [orders, inventory]);
 
   // ── stats (role-aware) ────────────────────────────────────────────────────
   const roleOrders=useMemo(()=>orders.filter(o=>ROLE_FILTER[role](o)),[orders,role]);
@@ -1032,6 +1075,56 @@ export default function OrdersPage(){
               ))}
           </div>
         </div>
+
+        {/* Analytics Toggle Button */}
+        <div style={{marginBottom:16, display:"flex", justifyContent:"flex-end"}}>
+          <button className="dl-btn" onClick={()=>setShowAnalytics(!showAnalytics)} style={{background:"var(--surface-2)", color:"var(--text-2)", border:"1px solid var(--border)", cursor:"pointer"}}>
+            {showAnalytics ? "Hide Analytics ↗" : "Show Analytics ↗"}
+          </button>
+        </div>
+
+        {/* Analytics Dashboard */}
+        {showAnalytics && (
+          <div className="analytics-dash" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "16px", marginBottom: "24px", animation:"slideUp 0.2s ease" }}>
+            
+            <div className="stat-card" style={{padding:16, flexDirection:"column", alignItems:"flex-start", gap:10}}>
+              <div style={{fontWeight:600, color:"var(--text)", fontSize:13, letterSpacing:1}}>🔥 TRENDING PRODUCTS</div>
+              <div style={{width:"100%"}}>
+                {analytics.trending.length===0 ? <div style={{fontSize:12, color:"var(--text-3)"}}>No active orders</div> : analytics.trending.map(t=>(
+                  <div key={t.sku} style={{display:"flex", justifyContent:"space-between", padding:"6px 0", borderBottom:"1px solid var(--border-light)", fontSize:12}}>
+                    <div style={{color:"var(--text-2)", maxWidth:"70%", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}} title={t.name}>{t.name}</div>
+                    <div style={{fontWeight:600, color:"var(--text)"}}>{t.qty} ord</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="stat-card" style={{padding:16, flexDirection:"column", alignItems:"flex-start", gap:10, "--accent-line":"#B8782A"}}>
+              <div style={{fontWeight:600, color:"var(--text)", fontSize:13, letterSpacing:1}}>⚠️ LOW & OUT OF STOCK</div>
+              <div style={{width:"100%"}}>
+                {analytics.lowStock.length===0 ? <div style={{fontSize:12, color:"var(--text-3)"}}>Stock levels look healthy</div> : analytics.lowStock.map(t=>(
+                  <div key={t.sku} style={{display:"flex", justifyContent:"space-between", padding:"6px 0", borderBottom:"1px solid var(--border-light)", fontSize:12}}>
+                    <div style={{color:"var(--text-2)", maxWidth:"60%", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}} title={t.sku}>{t.sku}</div>
+                    <div style={{fontWeight:600, color:t.invQty<=0?"#9A2A3A":"#B8782A"}}>{t.invQty} in stock</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="stat-card" style={{padding:16, flexDirection:"column", alignItems:"flex-start", gap:10, "--accent-line":"#9A2A3A"}}>
+              <div style={{fontWeight:600, color:"var(--text)", fontSize:13, letterSpacing:1}}>🚨 AT-RISK ORDERS (0 STOCK)</div>
+              <div style={{width:"100%"}}>
+                {analytics.outOfStockOrders.length===0 ? <div style={{fontSize:12, color:"var(--text-3)"}}>No orders blocked by stock</div> : analytics.outOfStockOrders.map(o=>(
+                  <div key={o.id} style={{display:"flex", justifyContent:"space-between", padding:"6px 0", borderBottom:"1px solid var(--border-light)", fontSize:12, cursor:"pointer"}} onClick={()=>setSelected(o)}>
+                    <div style={{color:"var(--gold-text)", fontWeight:600}}>{o.id}</div>
+                    <div style={{color:"var(--text-3)"}}>{o.sku}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        )}
 
         {/* SKU Production Board (production role only) */}
         <SKUBoard/>
