@@ -48,6 +48,7 @@ model Inventory {
   quantity      Int      @default(0)
   binLocation   String?
   notes         String?
+  lastSoldAt    DateTime?
   updatedAt     DateTime @updatedAt
 }
 
@@ -75,5 +76,13 @@ model WorkflowUser {
   access    String   // JSON string of roles, e.g., '["admin", "inventory"]'
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
 }
 

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLoaderData, useSubmit, Link, useLocation, useActionData } from "react-router";
+import { useLoaderData, useSubmit, Link, useLocation, useActionData, useRevalidator } from "react-router";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 
@@ -562,6 +562,16 @@ export default function OrdersPage(){
 
   useEffect(()=>{ setOrders(init); },[init]);
 
+  const { revalidate, state } = useRevalidator();
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (state === "idle") {
+        revalidate();
+      }
+    }, 15000); // Poll every 15 seconds
+    return () => clearInterval(interval);
+  }, [revalidate, state]);
+
   const actionData = useActionData();
   useEffect(()=>{
     if(!actionData) return;
@@ -806,7 +816,12 @@ export default function OrdersPage(){
         <div className="modal">
           <div className="modal-hdr">
             <div>
-              <div className="modal-title">{o.id} — {o.item}</div>
+              <div className="modal-title" style={{display:"flex", alignItems:"center", gap:"10px"}}>
+                {o.id} — {o.item}
+                <a href={`https://admin.shopify.com/orders/${o.sid.split("/").pop()}`} target="_blank" rel="noreferrer" style={{fontSize:11, fontWeight:500, color:"#fff", background:"#181818", padding:"4px 8px", borderRadius:4, textDecoration:"none"}}>
+                  View in Shopify ↗
+                </a>
+              </div>
               <div className="modal-sub">{o.customer} · {o.orderDate} · Aging: {o.aging}d</div>
             </div>
             <button className="modal-x" onClick={()=>setSelected(null)}>✕</button>

@@ -1,3 +1,4 @@
+/* eslint-env node */
 import https from "https";
 
 const secret   = "unnicharya_sync_secret_123";
