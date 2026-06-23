@@ -1214,8 +1214,8 @@ export default function OrdersPage(){
         </div>
       </main>
 
-      {selected&&<OrderModal/>}
-      {bulkPending&&<BulkModal/>}
+      {selected && OrderModal()}
+      {bulkPending && BulkModal()}
 
       {toast&&(
         <div className="toast-wrap">
