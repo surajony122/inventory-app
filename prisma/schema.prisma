@@ -48,7 +48,6 @@ model Inventory {
   quantity      Int      @default(0)
   binLocation   String?
   notes         String?
-  lastSoldAt    DateTime?
   updatedAt     DateTime @updatedAt
 }
 
