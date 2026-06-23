@@ -466,7 +466,10 @@ export const loader = async ({ request }) => {
     }),
     // OrderWorkflow has no createdAt column — just fetch all records
     prisma.orderWorkflow.findMany(),
-    prisma.inventory.findMany()
+    prisma.inventory.findMany().catch(e => {
+      console.error("Inventory fetch failed (schema issue?):", e);
+      return [];
+    })
   ]);
 
   const orders = buildOrdersFromCache(cached, states);
