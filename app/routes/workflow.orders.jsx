@@ -301,90 +301,87 @@ const PAGE_SIZE = 50;
 
 // ── LOADER ────────────────────────────────────────────────────────────────────
 export const loader = async ({ request }) => {
-  const email = await wfCookie.parse(request.headers.get("Cookie"));
-  const user = await findWorkflowUser(email);
-  if (!user) return redirect("/workflow");
+  try {
+    const email = await wfCookie.parse(request.headers.get("Cookie"));
+    const user = await findWorkflowUser(email);
+    if (!user) return redirect("/workflow");
 
-  // Get IDs of completed (Dispatched/Cancelled) orders to exclude at database level if they are too old
-  const completedWorkflows = await prisma.orderWorkflow.findMany({
-    where: {
-      status: { in: ["Dispatched", "Cancelled"] }
-    },
-    select: { id: true }
-  });
-  const completedIds = completedWorkflows.map(w => w.id);
-
-  const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-
-  const [total, cached, states] = await Promise.all([
-    prisma.orderCache.count({
+    const completedWorkflows = await prisma.orderWorkflow.findMany({
       where: {
-        OR: [
-          { id: { notIn: completedIds } },
-          {
-            id: { in: completedIds },
-            createdAt: { gte: last30Days }
-          }
-        ]
-      }
-    }),
-    prisma.orderCache.findMany({
-      where: {
-        OR: [
-          { id: { notIn: completedIds } },
-          {
-            id: { in: completedIds },
-            createdAt: { gte: last30Days }
-          }
-        ]
+        status: { in: ["Dispatched", "Cancelled"] }
       },
-      orderBy: { createdAt: "desc" },
-    }),
-    // OrderWorkflow has no createdAt column — just fetch all matching IDs
-    prisma.orderWorkflow.findMany(),
-    prisma.inventory.findMany().catch(e => {
-      console.error("Inventory fetch failed (schema issue?):", e);
-      return [];
-    })
-  ]);
+      select: { id: true }
+    });
+    const completedIds = completedWorkflows.map(w => w.id);
 
-  const stateMap = {};
-  states.forEach(s => {
-    stateMap[s.id] = s;
-  });
+    const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-  const orders = cached.map(c => {
-    const st = stateMap[c.id];
-    const aging = c.createdAt ? getAging(c.createdAt) : 0;
+    const [total, cached, states, inventory] = await Promise.all([
+      prisma.orderCache.count({
+        where: {
+          OR: [
+            { id: { notIn: completedIds } },
+            { id: { in: completedIds }, createdAt: { gte: last30Days } }
+          ]
+        }
+      }),
+      prisma.orderCache.findMany({
+        where: {
+          OR: [
+            { id: { notIn: completedIds } },
+            { id: { in: completedIds }, createdAt: { gte: last30Days } }
+          ]
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.orderWorkflow.findMany(),
+      prisma.inventory.findMany().catch(e => {
+        console.error("Inventory fetch failed:", e);
+        return [];
+      })
+    ]);
+
+    const stateMap = {};
+    states.forEach(s => {
+      stateMap[s.id] = s;
+    });
+
+    const orders = cached.map(c => {
+      const st = stateMap[c.id];
+      const aging = c.createdAt ? getAging(c.createdAt) : 0;
+      return {
+        shopifyId: c.id,
+        id: c.name,
+        customer: c.customer || "Guest",
+        item: c.item || "—",
+        sku: c.sku || "—",
+        qty: c.qty || 1,
+        imageUrl: c.imageUrl || null,
+        orderDate: c.orderDate || (c.createdAt ? fmtDate(c.createdAt) : "—"),
+        createdAt: c.createdAt || null,
+        priority: c.priority || "Medium",
+        status: st?.status || "Awaiting Inventory Check",
+        owner: st?.owner || "Inventory - Queue",
+        handoffs: JSON.parse(st?.handoffs || "[]"),
+        aging,
+        note: st?.note || "",
+        shopifyNote: c.shopifyNote || "",
+        paymentStatus: c.paymentStatus || "N/A",
+        tags: c.tags || "",
+      };
+    });
+
     return {
-      shopifyId: c.id,
-      id: c.name,
-      customer: c.customer || "Guest",
-      item: c.item || "—",
-      sku: c.sku || "—",
-      qty: c.qty || 1,
-      imageUrl: c.imageUrl || null,
-      orderDate: c.orderDate || (c.createdAt ? fmtDate(c.createdAt) : "—"),
-      createdAt: c.createdAt || null,
-      priority: c.priority || "Medium",
-      status: st?.status || "Awaiting Inventory Check",
-      owner: st?.owner || "Inventory - Queue",
-      handoffs: JSON.parse(st?.handoffs || "[]"),
-      aging,
-      note: st?.note || "",
-      shopifyNote: c.shopifyNote || "",
-      paymentStatus: c.paymentStatus || "N/A",
-      tags: c.tags || "",
+      orders,
+      inventory,
+      user: { email: user.email, name: user.name, access: user.access },
+      total,
+      isEmpty: total === 0,
     };
-  });
-
-  return {
-    orders,
-    inventory,
-    user: { email: user.email, name: user.name, access: user.access },
-    total,
-    isEmpty: total === 0,
-  };
+  } catch (error) {
+    console.error("LOADER ERROR:", error);
+    throw new Response(error.message + "\n" + error.stack, { status: 500, statusText: "Loader Error" });
+  }
 };
 
 // ── ACTION ────────────────────────────────────────────────────────────────────
@@ -1237,16 +1234,29 @@ export default function OrdersWorkflow() {
 
 export function ErrorBoundary() {
   const error = useRouteError();
-  console.error(error);
+  console.error("ErrorBoundary caught:", error);
+  
+  let errorMessage = "Unknown error";
+  let errorStack = "";
+
+  if (error instanceof Response) {
+    errorMessage = `${error.status} ${error.statusText}\n${error.data}`;
+  } else if (error instanceof Error) {
+    errorMessage = error.message;
+    errorStack = error.stack;
+  } else {
+    errorMessage = JSON.stringify(error);
+  }
+
   return (
     <div style={{ padding: "40px", color: "red", background: "#fee", fontFamily: "monospace", minHeight: "100vh" }}>
       <h2>Application Error in Workflow Orders</h2>
       <pre style={{ whiteSpace: "pre-wrap", background: "#fff", padding: "20px", borderRadius: "8px" }}>
-        {error.message || JSON.stringify(error)}
+        {errorMessage}
       </pre>
-      {error.stack && (
+      {errorStack && (
         <pre style={{ whiteSpace: "pre-wrap", background: "#fff", padding: "20px", borderRadius: "8px", marginTop: "20px" }}>
-          {error.stack}
+          {errorStack}
         </pre>
       )}
     </div>
