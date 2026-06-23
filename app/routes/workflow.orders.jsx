@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLoaderData, useSubmit, redirect, useNavigate, Link, useRevalidator } from "react-router";
+import { useLoaderData, useSubmit, redirect, useNavigate, Link, useRevalidator, useRouteError } from "react-router";
 import { wfCookie } from "../workflow.cookie.server";
 import { findWorkflowUser } from "../workflow.users.server";
 import prisma from "../db.server";
@@ -1232,5 +1232,23 @@ export default function OrdersWorkflow() {
         </div>
       )}
     </>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  console.error(error);
+  return (
+    <div style={{ padding: "40px", color: "red", background: "#fee", fontFamily: "monospace", minHeight: "100vh" }}>
+      <h2>Application Error in Workflow Orders</h2>
+      <pre style={{ whiteSpace: "pre-wrap", background: "#fff", padding: "20px", borderRadius: "8px" }}>
+        {error.message || JSON.stringify(error)}
+      </pre>
+      {error.stack && (
+        <pre style={{ whiteSpace: "pre-wrap", background: "#fff", padding: "20px", borderRadius: "8px", marginTop: "20px" }}>
+          {error.stack}
+        </pre>
+      )}
+    </div>
   );
 }
