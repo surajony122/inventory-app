@@ -980,7 +980,6 @@ export default function OrdersWorkflow() {
                 </div>
               ))}
           </div>
-          </div>
         </div>
 
         {/* Analytics Toggle Button */}
