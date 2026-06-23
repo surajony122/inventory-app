@@ -477,7 +477,7 @@ export default function OrdersWorkflow() {
   const [bulkPending, setBulkPending] = useState(null);
   const [toast,       setToast]       = useState(null);
   const [inventory,   setInventory]   = useState(initInv || []);
-  const [showAnalytics, setShowAnalytics] = useState(false);
+
 
   useEffect(() => {
     setOrders(init);
@@ -536,41 +536,45 @@ export default function OrdersWorkflow() {
   // ── analytics ─────────────────────────────────────────────────────────────
   const analytics = useMemo(() => {
     const skuCounts = {};
+    const skuImages = {};
+    const skuNames = {};
     orders.forEach(o => {
+      if (o.imageUrl && !skuImages[o.sku]) skuImages[o.sku] = o.imageUrl;
+      if (o.item && !skuNames[o.sku]) skuNames[o.sku] = o.item;
+
       if (o.status === "Cancelled" || o.status === "Dispatched") return;
-      if (!skuCounts[o.sku]) skuCounts[o.sku] = { sku: o.sku, name: o.item, qty: 0 };
+      if (!skuCounts[o.sku]) skuCounts[o.sku] = { sku: o.sku, name: o.item, qty: 0, imageUrl: o.imageUrl };
+      if (!skuCounts[o.sku].imageUrl && o.imageUrl) skuCounts[o.sku].imageUrl = o.imageUrl;
       skuCounts[o.sku].qty += o.qty;
     });
-    const trending = Object.values(skuCounts).sort((a,b) => b.qty - a.qty).slice(0, 5);
+    const trending = Object.values(skuCounts).sort((a,b) => b.qty - a.qty).slice(0, 50);
 
     const invMap = {};
     inventory.forEach(i => { if (i.sku) invMap[i.sku] = i; });
-    
+
     const lowStock = [];
-    const outOfStockOrders = [];
-    
-    Object.values(skuCounts).forEach(s => {
-      if(s.sku === "—") return;
-      const inv = invMap[s.sku];
-      if (inv) {
-        if (inv.quantity <= 0) lowStock.push({ ...s, invQty: inv.quantity, status: "Out of Stock" });
-        else if (inv.quantity <= 10) lowStock.push({ ...s, invQty: inv.quantity, status: "Low Stock" });
-      } else {
-        lowStock.push({ ...s, invQty: 0, status: "Out of Stock (No Data)" });
+    inventory.forEach(i => {
+      if (i.sku && i.quantity <= 10) {
+        lowStock.push({ 
+          sku: i.sku, 
+          invQty: i.quantity,
+          imageUrl: skuImages[i.sku] || null,
+          name: skuNames[i.sku] || "Unknown Item"
+        });
       }
     });
-
-    orders.forEach(o => {
-      if (o.status === "Cancelled" || o.status === "Dispatched") return;
-      if (o.sku === "—") return;
-      const inv = invMap[o.sku];
-      if (!inv || inv.quantity <= 0) outOfStockOrders.push(o);
-    });
-
     lowStock.sort((a,b) => a.invQty - b.invQty);
 
-    return { trending, lowStock: lowStock.slice(0, 10), outOfStockOrders: outOfStockOrders.slice(0, 10) };
+    const outOfStockOrders = orders.filter(o => {
+      if (o.status === "Cancelled" || o.status === "Dispatched") return false;
+      const inv = invMap[o.sku];
+      return inv && inv.quantity <= 0;
+    });
+
+    return { trending, lowStock, outOfStockOrders };
   }, [orders, inventory]);
+
+  const [showAnalytics, setShowAnalytics] = useState(true);
 
   // ── stats ───────────────────────────────────────────────────────────────
   const roleOrders = useMemo(()=>orders.filter(o=>ROLE_FILTER[role](o)), [orders,role]);
@@ -590,7 +594,7 @@ export default function OrdersWorkflow() {
     delayed: delayed.length,
   };
 
-  // ── SKU board data ──────────────────────────────────────────────────────
+  // ── SKU Board data ──────────────────────────────────────────────────────
   const skuGroups = useMemo(() => {
     const map={};
     orders.filter(o=>PROD_STATUSES.includes(o.status)).forEach(o=>{
@@ -912,7 +916,7 @@ export default function OrdersWorkflow() {
         )}
 
         {/* Top row: Stats + Alerts */}
-        <div className="top-row">
+        <div className="top-row" style={{ flexDirection: "column" }}>
           {role==="production" ? (
             <div className="stats-row">
               <div className="stat-card" style={{cursor:"pointer"}} onClick={()=>{setStatusF("all");setDelayF("all");setActiveSKU(null);setPage(1);}}>
@@ -961,24 +965,28 @@ export default function OrdersWorkflow() {
             </div>
           )}
 
-          {/* Alerts panel */}
-          <div className="alerts-panel">
+          {/* Alerts panel (Horizontal) */}
+          <div className="alerts-panel" style={{ width: "100%" }}>
             <div className="alerts-panel-title">Alerts</div>
-            {delayed.length===0
-              ? <div className="alerts-ok">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="#2A7A6A" strokeWidth="1.2"/><path d="M3.5 6l1.8 1.8L8.5 4" stroke="#2A7A6A" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  No delayed orders
-                </div>
-              : delayed.slice(0,6).map(o=>(
-                <div key={o.shopifyId} className="alert-item" onClick={()=>{setSelected(o);setNoteVal(o.note);}}>
-                   <div className="alert-thumb-ph">◈</div>
-                   <div className="alert-info">
-                     <div className="alert-id">{o.id}</div>
-                     <div className="alert-status">{o.status}</div>
-                     <div className="alert-age">{o.aging}d pending</div>
-                   </div>
-                </div>
-              ))}
+            <div style={{ display: "flex", gap: "10px", overflowX: "auto", paddingBottom: "5px" }}>
+              {delayed.length===0
+                ? <div className="alerts-ok" style={{ width: "100%" }}>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="#2A7A6A" strokeWidth="1.2"/><path d="M3.5 6l1.8 1.8L8.5 4" stroke="#2A7A6A" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    No delayed orders
+                  </div>
+                : delayed.slice(0,10).map(o=>(
+                  <div key={o.shopifyId} className="alert-item" style={{ width: "240px", flexShrink: 0, marginBottom: 0 }} onClick={()=>{setSelected(o);setNoteVal(o.note);}}>
+                    {o.imageUrl
+                      ? <img src={o.imageUrl} className="alert-thumb" alt="" onError={e=>{e.target.style.display="none";}}/>
+                      : <div className="alert-thumb-ph">◈</div>}
+                    <div className="alert-info">
+                      <div className="alert-id">{o.id}</div>
+                      <div className="alert-status">{o.status}</div>
+                      <div className="alert-age">{o.aging}d pending</div>
+                    </div>
+                  </div>
+                ))}
+            </div>
           </div>
         </div>
 
@@ -991,39 +999,56 @@ export default function OrdersWorkflow() {
 
         {/* Analytics Dashboard */}
         {showAnalytics && (
-          <div className="analytics-dash" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "16px", marginBottom: "24px", animation:"slideUp 0.2s ease" }}>
+          <div className="analytics-dash" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "16px", marginBottom: "24px", animation:"slideUp 0.2s ease" }}>
             
-            <div className="stat-card" style={{padding:16, flexDirection:"column", alignItems:"flex-start", gap:10}}>
-              <div style={{fontWeight:600, color:"var(--text)", fontSize:13, letterSpacing:1}}>🔥 TRENDING PRODUCTS</div>
-              <div style={{width:"100%"}}>
+            {/* Trending Products */}
+            <div className="stat-card" style={{padding:0, display:"flex", flexDirection:"column", height:"400px"}}>
+              <div style={{padding:"16px", borderBottom:"1px solid var(--border)", fontWeight:600, color:"var(--text)", fontSize:13, letterSpacing:1}}>🔥 TRENDING PRODUCTS</div>
+              <div style={{flex:1, overflowY:"auto", padding:"16px", display:"flex", flexDirection:"column", gap:"12px"}}>
                 {analytics.trending.length===0 ? <div style={{fontSize:12, color:"var(--text-3)"}}>No active orders</div> : analytics.trending.map(t=>(
-                  <div key={t.sku} style={{display:"flex", justifyContent:"space-between", padding:"6px 0", borderBottom:"1px solid var(--border-light)", fontSize:12}}>
-                    <div style={{color:"var(--text-2)", maxWidth:"70%", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}} title={t.name}>{t.name}</div>
+                  <div key={t.sku} style={{display:"flex", alignItems:"center", gap:12, paddingBottom:12, borderBottom:"1px solid var(--border-light)"}}>
+                    {t.imageUrl ? <img src={t.imageUrl} style={{width:40, height:40, borderRadius:8, objectFit:"cover", border:"1px solid var(--border-md)"}}/> : <div style={{width:40, height:40, borderRadius:8, background:"var(--surface-3)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10}}>◈</div>}
+                    <div style={{flex:1, minWidth:0}}>
+                      <div style={{fontWeight:500, color:"var(--text)", fontSize:13, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}} title={t.name}>{t.name}</div>
+                      <div style={{fontFamily:"'DM Mono',monospace", fontSize:10, color:"var(--text-3)"}}>{t.sku}</div>
+                    </div>
                     <div style={{fontWeight:600, color:"var(--text)"}}>{t.qty} ord</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="stat-card" style={{padding:16, flexDirection:"column", alignItems:"flex-start", gap:10, "--accent-line":"#B8782A"}}>
-              <div style={{fontWeight:600, color:"var(--text)", fontSize:13, letterSpacing:1}}>⚠️ LOW & OUT OF STOCK</div>
-              <div style={{width:"100%"}}>
+            {/* Low & Out of Stock */}
+            <div className="stat-card" style={{padding:0, display:"flex", flexDirection:"column", height:"400px", "--accent-line":"#B8782A"}}>
+              <div style={{padding:"16px", borderBottom:"1px solid var(--border)", fontWeight:600, color:"var(--text)", fontSize:13, letterSpacing:1}}>⚠️ LOW & OUT OF STOCK</div>
+              <div style={{flex:1, overflowY:"auto", padding:"16px", display:"flex", flexDirection:"column", gap:"12px"}}>
                 {analytics.lowStock.length===0 ? <div style={{fontSize:12, color:"var(--text-3)"}}>Stock levels look healthy</div> : analytics.lowStock.map(t=>(
-                  <div key={t.sku} style={{display:"flex", justifyContent:"space-between", padding:"6px 0", borderBottom:"1px solid var(--border-light)", fontSize:12}}>
-                    <div style={{color:"var(--text-2)", maxWidth:"60%", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}} title={t.sku}>{t.sku}</div>
+                  <div key={t.sku} style={{display:"flex", alignItems:"center", gap:12, paddingBottom:12, borderBottom:"1px solid var(--border-light)"}}>
+                    {t.imageUrl ? <img src={t.imageUrl} style={{width:40, height:40, borderRadius:8, objectFit:"cover", border:"1px solid var(--border-md)"}}/> : <div style={{width:40, height:40, borderRadius:8, background:"var(--surface-3)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10}}>◈</div>}
+                    <div style={{flex:1, minWidth:0}}>
+                      <div style={{fontWeight:500, color:"var(--text)", fontSize:13, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}} title={t.name}>{t.name}</div>
+                      <div style={{fontFamily:"'DM Mono',monospace", fontSize:10, color:"var(--text-3)"}}>{t.sku}</div>
+                    </div>
                     <div style={{fontWeight:600, color:t.invQty<=0?"#9A2A3A":"#B8782A"}}>{t.invQty} in stock</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="stat-card" style={{padding:16, flexDirection:"column", alignItems:"flex-start", gap:10, "--accent-line":"#9A2A3A"}}>
-              <div style={{fontWeight:600, color:"var(--text)", fontSize:13, letterSpacing:1}}>🚨 AT-RISK ORDERS (0 STOCK)</div>
-              <div style={{width:"100%"}}>
+            {/* At Risk Orders */}
+            <div className="stat-card" style={{padding:0, display:"flex", flexDirection:"column", height:"400px", "--accent-line":"#9A2A3A"}}>
+              <div style={{padding:"16px", borderBottom:"1px solid var(--border)", fontWeight:600, color:"var(--text)", fontSize:13, letterSpacing:1}}>🚨 AT-RISK ORDERS (0 STOCK)</div>
+              <div style={{flex:1, overflowY:"auto", padding:"16px", display:"flex", flexDirection:"column", gap:"12px"}}>
                 {analytics.outOfStockOrders.length===0 ? <div style={{fontSize:12, color:"var(--text-3)"}}>No orders blocked by stock</div> : analytics.outOfStockOrders.map(o=>(
-                  <div key={o.id} style={{display:"flex", justifyContent:"space-between", padding:"6px 0", borderBottom:"1px solid var(--border-light)", fontSize:12, cursor:"pointer"}} onClick={()=>setSelected(o)}>
-                    <div style={{color:"var(--gold-text)", fontWeight:600}}>{o.id}</div>
-                    <div style={{color:"var(--text-3)"}}>{o.sku}</div>
+                  <div key={o.shopifyId} onClick={()=>{setSelected(o);setNoteVal(o.note);}} style={{display:"flex", alignItems:"center", gap:12, paddingBottom:12, borderBottom:"1px solid var(--border-light)", cursor:"pointer"}}>
+                    {o.imageUrl ? <img src={o.imageUrl} style={{width:40, height:40, borderRadius:8, objectFit:"cover", border:"1px solid var(--border-md)"}}/> : <div style={{width:40, height:40, borderRadius:8, background:"var(--surface-3)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10}}>◈</div>}
+                    <div style={{flex:1, minWidth:0}}>
+                      <div style={{fontWeight:600, color:"var(--text)", fontSize:13, display:"flex", alignItems:"center", gap:6}}>
+                        {o.id}
+                        <span className="dl-btn" style={{padding:"2px 6px", fontSize:9, background:"transparent", color:"var(--text-2)", border:"1px solid var(--border)", borderRadius:4}}>View ↗</span>
+                      </div>
+                      <div style={{fontFamily:"'DM Mono',monospace", fontSize:10, color:"var(--text-3)"}}>{o.sku}</div>
+                    </div>
                   </div>
                 ))}
               </div>
