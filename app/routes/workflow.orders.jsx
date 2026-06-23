@@ -709,9 +709,11 @@ export default function WorkflowOrders() {
             <div>
               <div className="modal-title" style={{display:"flex", alignItems:"center", gap:"10px"}}>
                 {o.id} — {o.item}
-                <a href={`https://admin.shopify.com/orders/${o.sid.split("/").pop()}`} target="_blank" rel="noreferrer" style={{fontSize:11, fontWeight:500, color:"#fff", background:"#181818", padding:"4px 8px", borderRadius:4, textDecoration:"none"}}>
-                  View in Shopify ↗
-                </a>
+                {o.sid && (
+                  <a href={`https://admin.shopify.com/orders/${o.sid.split("/").pop()}`} target="_blank" rel="noreferrer" style={{fontSize:11, fontWeight:500, color:"#fff", background:"#181818", padding:"4px 8px", borderRadius:4, textDecoration:"none"}}>
+                    View in Shopify ↗
+                  </a>
+                )}
               </div>
               <div className="modal-sub">{o.customer} · {o.orderDate} · Aging: {o.aging}d</div>
             </div>
