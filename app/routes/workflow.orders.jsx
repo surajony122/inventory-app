@@ -203,9 +203,9 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--blue);cursor:poin
 .note-area:focus{border-color:var(--gold);background:var(--surface);}
 .modal-actions{padding:14px 24px 20px;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
 .btn{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:8px 16px;border-radius:var(--r-sm);border:1px solid var(--border-md);background:var(--surface);color:var(--text);cursor:pointer;transition:all 0.12s;white-space:nowrap;}
-.btn:hover{background:var(--surface-2);}
+.btn:hover:not(.btn-primary){background:var(--surface-2);}
 .btn-primary{background:var(--text);color:#fff;border-color:var(--text);}
-.btn-primary:hover{opacity:0.85;}
+.btn-primary:hover{opacity:0.85;background:var(--text);color:#fff;}
 .btn-ghost{border-color:transparent;color:var(--text-2);}
 .btn-ghost:hover{background:var(--surface-2);}
 .ml-a{margin-left:auto;}
