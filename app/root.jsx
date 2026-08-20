@@ -1,4 +1,4 @@
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from "react-router";
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError, useNavigation } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 export const links = () => [
@@ -8,6 +8,9 @@ export const links = () => [
 ];
 
 export default function App() {
+  const navigation = useNavigation();
+  const isLoading = navigation.state !== "idle";
+
   return (
     <html lang="en">
       <head>
@@ -15,8 +18,22 @@ export default function App() {
         <meta name="viewport" content="width=device-width,initial-scale=1" />
         <Meta />
         <Links />
+        <style>{`
+          .global-loader {
+            position: fixed; top: 0; left: 0; right: 0; height: 3px;
+            background: #2A5F9A; z-index: 99999;
+            transform-origin: 0% 50%;
+            animation: loaderAnim 2s infinite ease-in-out;
+          }
+          @keyframes loaderAnim {
+            0% { transform: scaleX(0); }
+            50% { transform: scaleX(0.7); }
+            100% { transform: scaleX(1); opacity: 0; }
+          }
+        `}</style>
       </head>
       <body>
+        {isLoading && <div className="global-loader" />}
         <Outlet />
         <ScrollRestoration />
         <Scripts />

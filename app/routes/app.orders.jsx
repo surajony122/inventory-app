@@ -452,7 +452,7 @@ export const loader = async ({ request }) => {
 
     const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    const [cached, states, inventory] = await Promise.all([
+    const [cached, states] = await Promise.all([
       prisma.orderCache.findMany({
         where: {
           OR: [
@@ -465,12 +465,16 @@ export const loader = async ({ request }) => {
         },
         orderBy: { updatedAt: "desc" }
       }),
-      prisma.orderWorkflow.findMany(),
-      prisma.inventory.findMany().catch(e => {
-        console.error("Inventory fetch failed (schema issue?):", e);
-        return [];
-      })
+      prisma.orderWorkflow.findMany()
     ]);
+
+    const orderSkus = [...new Set(cached.map(c => c.sku).filter(Boolean))];
+    const inventory = await prisma.inventory.findMany({
+      where: { sku: { in: orderSkus } }
+    }).catch(e => {
+      console.error("Inventory fetch failed:", e);
+      return [];
+    });
 
     const orders = buildOrdersFromCache(cached, states);
     const lastSync = cached.length>0 ? cached[0].updatedAt?.toISOString()||null : null;
