@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, Suspense } from "react";
-import { useLoaderData, useSubmit, Link, useLocation, useActionData, useRevalidator, defer, Await } from "react-router";
+import { useLoaderData, useSubmit, Link, useLocation, useActionData, useRevalidator, Await } from "react-router";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 
@@ -477,7 +477,7 @@ export const loader = async ({ request }) => {
     return { orders, inventory, lastSync, isEmpty: cached.length===0 };
   })();
 
-  return defer({ data: dataPromise });
+  return { data: dataPromise };
 };
 
 // ── ACTION ────────────────────────────────────────────────────────────────────

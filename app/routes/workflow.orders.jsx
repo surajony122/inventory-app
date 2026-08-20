@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, Suspense } from "react";
-import { useLoaderData, useSubmit, redirect, useNavigate, Link, useRevalidator, useRouteError, defer, Await } from "react-router";
+import { useLoaderData, useSubmit, redirect, useNavigate, Link, useRevalidator, useRouteError, Await } from "react-router";
 import { wfCookie } from "../workflow.cookie.server";
 import { findWorkflowUser } from "../workflow.users.server";
 import prisma from "../db.server";
@@ -381,7 +381,7 @@ export const loader = async ({ request }) => {
       };
     })();
 
-    return defer({ data: dataPromise });
+    return { data: dataPromise };
   } catch (error) {
     console.error("LOADER ERROR:", error);
     throw new Response(error.message + "\n" + error.stack, { status: 500, statusText: "Loader Error" });
