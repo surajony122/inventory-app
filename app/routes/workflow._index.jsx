@@ -1,4 +1,4 @@
-import { redirect, useOutletContext, useNavigation } from "react-router";
+import { redirect, useOutletContext, useNavigation, Form } from "react-router";
 import { wfCookie } from "../workflow.cookie.server";
 import { findWorkflowUser } from "../workflow.users.server";
 
@@ -76,7 +76,7 @@ export default function WorkflowLogin() {
 
               {error && <div className="msg-err">{error}</div>}
 
-              <form method="post">
+              <Form method="post">
                 <input type="hidden" name="step" value="email"/>
                 <label className="field-lbl">Email address</label>
                 <input
@@ -91,7 +91,7 @@ export default function WorkflowLogin() {
                 <button className="submit-btn" type="submit" disabled={isLoading}>
                   {isLoading ? "Sending OTP…" : "Send OTP →"}
                 </button>
-              </form>
+              </Form>
             </>
           ) : (
             <>
@@ -104,7 +104,7 @@ export default function WorkflowLogin() {
               {msg   && <div className="msg-ok">{msg}</div>}
               {error && <div className="msg-err">{error}</div>}
 
-              <form method="post">
+              <Form method="post">
                 <input type="hidden" name="step" value="otp"/>
                 <input type="hidden" name="email" value={actionData?.email}/>
                 <label className="field-lbl">One-time code</label>
@@ -122,12 +122,12 @@ export default function WorkflowLogin() {
                 <button className="submit-btn" type="submit" disabled={isLoading}>
                   {isLoading ? "Verifying…" : "Verify & Sign In"}
                 </button>
-              </form>
+              </Form>
 
-              <form method="post" style={{ display: "inline" }}>
+              <Form method="post" style={{ display: "inline" }}>
                 <input type="hidden" name="step" value="email"/>
                 <button type="submit" className="back-link">← Use a different email</button>
-              </form>
+              </Form>
             </>
           )}
 
