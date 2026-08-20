@@ -19,36 +19,25 @@ export const action = async ({ request }) => {
 
     const code = generateOtp(email);
 
-    const serviceId  = process.env.EMAILJS_SERVICE_ID  || "service_l70n514";
-    const templateId = process.env.EMAILJS_TEMPLATE_ID || "template_8f6qe3d";
-    const publicKey  = process.env.EMAILJS_PUBLIC_KEY  || "QgCNmcpLSsoMZ4rSy";
-    const privateKey = process.env.EMAILJS_PRIVATE_KEY || "-cf51dNuko0hC_k8kzGjR";
-
-    if (!serviceId || !templateId || !publicKey) {
-      console.log(`[OTP] Code for ${email}: ${code}`);
-      return { step: "otp", email, message: `OTP sent to ${email} (check server logs in dev mode).` };
-    }
+    const appsScriptUrl = process.env.APPS_SCRIPT_EMAIL_URL || "https://script.google.com/macros/s/AKfycbw11sUmCSP9UouT4bKeSQoGrpZPdLnWYa1WG7a6LsDTCadUfiK7l3xM8aa8cIj8zXz9_Q/exec";
 
     try {
-      const res = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
-        method:  "POST",
+      const res = await fetch(appsScriptUrl, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          service_id:  serviceId,
-          template_id: templateId,
-          user_id:     publicKey,
-          accessToken: privateKey,
-          template_params: {
-            to_email:  email,
-            user_name: user.name || "User",
-            otp_code:  code,
-          },
+          to_email: email,
+          user_name: user.name || "User",
+          otp_code: code,
         }),
       });
-      if (!res.ok) throw new Error("EmailJS " + res.status);
+      
+      if (!res.ok) {
+        throw new Error("Apps Script " + res.status);
+      }
     } catch (err) {
       console.error("[OTP] Send failed:", err.message);
-      return { step: "email", error: "Failed to send OTP. Check EmailJS env vars in Render." };
+      return { step: "email", error: "Failed to send OTP. Check server logs." };
     }
 
     return { step: "otp", email, message: `A 4-digit OTP was sent to ${email}` };
