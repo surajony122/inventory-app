@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
-import { useLoaderData, useSubmit, redirect, useNavigate, Link, useRevalidator, useRouteError } from "react-router";
+import { useState, useMemo, useEffect, Suspense } from "react";
+import { useLoaderData, useSubmit, redirect, useNavigate, Link, useRevalidator, useRouteError, defer, Await } from "react-router";
 import { wfCookie } from "../workflow.cookie.server";
 import { findWorkflowUser } from "../workflow.users.server";
 import prisma from "../db.server";
@@ -306,78 +306,82 @@ export const loader = async ({ request }) => {
     const user = await findWorkflowUser(email);
     if (!user) return redirect("/workflow");
 
-    const completedWorkflows = await prisma.orderWorkflow.findMany({
-      where: {
-        status: { in: ["Dispatched", "Cancelled"] }
-      },
-      select: { id: true }
-    });
-    const completedIds = completedWorkflows.map(w => w.id);
-
-    const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-
-    const [total, cached, states, inventory] = await Promise.all([
-      prisma.orderCache.count({
+    const dataPromise = (async () => {
+      const completedWorkflows = await prisma.orderWorkflow.findMany({
         where: {
-          OR: [
-            { id: { notIn: completedIds } },
-            { id: { in: completedIds }, createdAt: { gte: last30Days } }
-          ]
-        }
-      }),
-      prisma.orderCache.findMany({
-        where: {
-          OR: [
-            { id: { notIn: completedIds } },
-            { id: { in: completedIds }, createdAt: { gte: last30Days } }
-          ]
+          status: { in: ["Dispatched", "Cancelled"] }
         },
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.orderWorkflow.findMany(),
-      prisma.inventory.findMany().catch(e => {
-        console.error("Inventory fetch failed:", e);
-        return [];
-      })
-    ]);
+        select: { id: true }
+      });
+      const completedIds = completedWorkflows.map(w => w.id);
 
-    const stateMap = {};
-    states.forEach(s => {
-      stateMap[s.id] = s;
-    });
+      const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    const orders = cached.map(c => {
-      const st = stateMap[c.id];
-      const aging = c.createdAt ? getAging(c.createdAt) : 0;
+      const [total, cached, states, inventory] = await Promise.all([
+        prisma.orderCache.count({
+          where: {
+            OR: [
+              { id: { notIn: completedIds } },
+              { id: { in: completedIds }, createdAt: { gte: last30Days } }
+            ]
+          }
+        }),
+        prisma.orderCache.findMany({
+          where: {
+            OR: [
+              { id: { notIn: completedIds } },
+              { id: { in: completedIds }, createdAt: { gte: last30Days } }
+            ]
+          },
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.orderWorkflow.findMany(),
+        prisma.inventory.findMany().catch(e => {
+          console.error("Inventory fetch failed:", e);
+          return [];
+        })
+      ]);
+
+      const stateMap = {};
+      states.forEach(s => {
+        stateMap[s.id] = s;
+      });
+
+      const orders = cached.map(c => {
+        const st = stateMap[c.id];
+        const aging = c.createdAt ? getAging(c.createdAt) : 0;
+        return {
+          shopifyId: c.id,
+          id: c.name,
+          customer: c.customer || "Guest",
+          item: c.item || "—",
+          sku: c.sku || "—",
+          qty: c.qty || 1,
+          imageUrl: c.imageUrl || null,
+          orderDate: c.orderDate || (c.createdAt ? fmtDate(c.createdAt) : "—"),
+          createdAt: c.createdAt || null,
+          priority: c.priority || "Medium",
+          status: st?.status || "Awaiting Inventory Check",
+          owner: st?.owner || "Inventory - Queue",
+          handoffs: JSON.parse(st?.handoffs || "[]"),
+          aging,
+          note: st?.note || "",
+          shopifyNote: c.shopifyNote || "",
+          paymentStatus: c.paymentStatus || "N/A",
+          tags: c.tags || "",
+        };
+      });
+
       return {
-        shopifyId: c.id,
-        id: c.name,
-        customer: c.customer || "Guest",
-        item: c.item || "—",
-        sku: c.sku || "—",
-        qty: c.qty || 1,
-        imageUrl: c.imageUrl || null,
-        orderDate: c.orderDate || (c.createdAt ? fmtDate(c.createdAt) : "—"),
-        createdAt: c.createdAt || null,
-        priority: c.priority || "Medium",
-        status: st?.status || "Awaiting Inventory Check",
-        owner: st?.owner || "Inventory - Queue",
-        handoffs: JSON.parse(st?.handoffs || "[]"),
-        aging,
-        note: st?.note || "",
-        shopifyNote: c.shopifyNote || "",
-        paymentStatus: c.paymentStatus || "N/A",
-        tags: c.tags || "",
+        orders,
+        inventory,
+        user: { email: user.email, name: user.name, access: user.access },
+        total,
+        isEmpty: total === 0,
       };
-    });
+    })();
 
-    return {
-      orders,
-      inventory,
-      user: { email: user.email, name: user.name, access: user.access },
-      total,
-      isEmpty: total === 0,
-    };
+    return defer({ data: dataPromise });
   } catch (error) {
     console.error("LOADER ERROR:", error);
     throw new Response(error.message + "\n" + error.stack, { status: 500, statusText: "Loader Error" });
@@ -442,8 +446,7 @@ export const action = async ({ request }) => {
   return {ok:false};
 };
 
-export default function OrdersWorkflow() {
-  const { orders: init, inventory: initInv, user, isEmpty } = useLoaderData();
+export function InnerOrdersWorkflow({ init, initInv, user, isEmpty }) {
   const submit = useSubmit();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
@@ -1254,6 +1257,23 @@ export default function OrdersWorkflow() {
         </div>
       )}
     </>
+  );
+}
+
+export default function OrdersWorkflow() {
+  const { data } = useLoaderData();
+  return (
+    <Suspense fallback={
+      <div style={{ padding: "40px", textAlign: "center", fontFamily: "sans-serif", color: "#6B6251" }}>
+        Loading workflow dashboard...
+      </div>
+    }>
+      <Await resolve={data}>
+        {({ orders, inventory, user, total, isEmpty }) => (
+          <InnerOrdersWorkflow init={orders} initInv={inventory} user={user} isEmpty={isEmpty} />
+        )}
+      </Await>
+    </Suspense>
   );
 }
 

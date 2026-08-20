@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
-import { useLoaderData, useSubmit, Link, useLocation, useActionData, useRevalidator } from "react-router";
+import { useState, useMemo, useEffect, Suspense } from "react";
+import { useLoaderData, useSubmit, Link, useLocation, useActionData, useRevalidator, defer, Await } from "react-router";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 
@@ -441,40 +441,43 @@ export const loader = async ({ request }) => {
   // 1. We only read from local DB (no Shopify API needed)
   // 2. Calling it triggers a Shopify session-token round-trip that shows "200"
 
-  const completedWorkflows = await prisma.orderWorkflow.findMany({
-    where: {
-      status: { in: ["Dispatched", "Cancelled"] }
-    },
-    select: { id: true }
-  });
-  const completedIds = completedWorkflows.map(w => w.id);
-
-  const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-
-  const [cached, states, inventory] = await Promise.all([
-    prisma.orderCache.findMany({
+  const dataPromise = (async () => {
+    const completedWorkflows = await prisma.orderWorkflow.findMany({
       where: {
-        OR: [
-          { id: { notIn: completedIds } },
-          {
-            id: { in: completedIds },
-            createdAt: { gte: last30Days }
-          }
-        ]
+        status: { in: ["Dispatched", "Cancelled"] }
       },
-      orderBy: { updatedAt: "desc" }
-    }),
-    // OrderWorkflow has no createdAt column — just fetch all records
-    prisma.orderWorkflow.findMany(),
-    prisma.inventory.findMany().catch(e => {
-      console.error("Inventory fetch failed (schema issue?):", e);
-      return [];
-    })
-  ]);
+      select: { id: true }
+    });
+    const completedIds = completedWorkflows.map(w => w.id);
 
-  const orders = buildOrdersFromCache(cached, states);
-  const lastSync = cached.length>0 ? cached[0].updatedAt?.toISOString()||null : null;
-  return { orders, inventory, lastSync, isEmpty: cached.length===0 };
+    const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    const [cached, states, inventory] = await Promise.all([
+      prisma.orderCache.findMany({
+        where: {
+          OR: [
+            { id: { notIn: completedIds } },
+            {
+              id: { in: completedIds },
+              createdAt: { gte: last30Days }
+            }
+          ]
+        },
+        orderBy: { updatedAt: "desc" }
+      }),
+      prisma.orderWorkflow.findMany(),
+      prisma.inventory.findMany().catch(e => {
+        console.error("Inventory fetch failed (schema issue?):", e);
+        return [];
+      })
+    ]);
+
+    const orders = buildOrdersFromCache(cached, states);
+    const lastSync = cached.length>0 ? cached[0].updatedAt?.toISOString()||null : null;
+    return { orders, inventory, lastSync, isEmpty: cached.length===0 };
+  })();
+
+  return defer({ data: dataPromise });
 };
 
 // ── ACTION ────────────────────────────────────────────────────────────────────
@@ -542,8 +545,7 @@ export const action = async ({ request }) => {
 };
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
-export default function OrdersPage(){
-  const {orders:init, inventory:initInv, lastSync:initLastSync, isEmpty}=useLoaderData();
+export function InnerOrdersPage({ init, initInv, initLastSync, isEmpty }){
   const submit=useSubmit();
   const { search }=useLocation();
 
@@ -1330,5 +1332,22 @@ export default function OrdersPage(){
         </div>
       )}
     </>
+  );
+}
+
+export default function OrdersPage() {
+  const { data } = useLoaderData();
+  return (
+    <Suspense fallback={
+      <div style={{ padding: "40px", textAlign: "center", fontFamily: "sans-serif", color: "#6B6251" }}>
+        Loading dashboard...
+      </div>
+    }>
+      <Await resolve={data}>
+        {({ orders, inventory, lastSync, isEmpty }) => (
+          <InnerOrdersPage init={orders} initInv={inventory} initLastSync={lastSync} isEmpty={isEmpty} />
+        )}
+      </Await>
+    </Suspense>
   );
 }
