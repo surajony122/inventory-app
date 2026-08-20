@@ -76,7 +76,7 @@ export default function WorkflowLogin() {
 
               {error && <div className="msg-err">{error}</div>}
 
-              <Form method="post">
+              <Form method="post" action="/workflow">
                 <input type="hidden" name="step" value="email"/>
                 <label className="field-lbl">Email address</label>
                 <input
@@ -104,7 +104,7 @@ export default function WorkflowLogin() {
               {msg   && <div className="msg-ok">{msg}</div>}
               {error && <div className="msg-err">{error}</div>}
 
-              <Form method="post">
+              <Form method="post" action="/workflow">
                 <input type="hidden" name="step" value="otp"/>
                 <input type="hidden" name="email" value={actionData?.email}/>
                 <label className="field-lbl">One-time code</label>
@@ -124,7 +124,7 @@ export default function WorkflowLogin() {
                 </button>
               </Form>
 
-              <Form method="post" style={{ display: "inline" }}>
+              <Form method="post" action="/workflow" style={{ display: "inline" }}>
                 <input type="hidden" name="step" value="email"/>
                 <button type="submit" className="back-link">← Use a different email</button>
               </Form>
