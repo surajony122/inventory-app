@@ -197,28 +197,23 @@ export const loader = async ({ request }) => {
   // Fetch all products
   let rawProducts = [], productsError = null;
   try {
-    let cursor = null, hasNext = true;
-    while (hasNext) {
-      const resp = await admin.graphql(`
-        query($cursor:String){
-          products(first:250,after:$cursor){
-            pageInfo{ hasNextPage endCursor }
-            edges{ node{
-              id title vendor
-              featuredImage{ url }
-              variants(first:100){ edges{ node{
-                id title sku inventoryQuantity
-              }}}
-            }}
-          }
+    const resp = await admin.graphql(`
+      query{
+        products(first:250){
+          edges{ node{
+            id title vendor
+            featuredImage{ url }
+            variants(first:100){ edges{ node{
+              id title sku inventoryQuantity
+            }}}
+          }}
         }
-      `, { variables: { cursor } });
-      const json = await resp.json();
-      if (json.errors?.length) throw new Error(json.errors.map(e => e.message).join(" | "));
-      const pg = json.data?.products; if (!pg) break;
-      rawProducts = rawProducts.concat(pg.edges.map(e => e.node));
-      hasNext = pg.pageInfo.hasNextPage; cursor = pg.pageInfo.endCursor;
-    }
+      }
+    `);
+    const json = await resp.json();
+    if (json.errors?.length) throw new Error(json.errors.map(e => e.message).join(" | "));
+    const pg = json.data?.products;
+    if (pg) rawProducts = pg.edges.map(e => e.node);
   } catch (err) {
     productsError = err.message || "Products unavailable";
   }
@@ -226,16 +221,37 @@ export const loader = async ({ request }) => {
   // Fetch open orders (unfulfilled/partial) with customer
   let rawOrders = [], ordersError = null;
   try {
-    let cursor = null, hasNext = true;
-    while (hasNext) {
+    const resp = await admin.graphql(`
+      query{
+        orders(first:250,query:"fulfillment_status:unfulfilled OR fulfillment_status:partial",sortKey:CREATED_AT,reverse:true){
+          edges{ node{
+            id name createdAt displayFulfillmentStatus
+            totalPriceSet{ shopMoney{ amount currencyCode } }
+            customer{ firstName lastName }
+            lineItems(first:10){ edges{ node{
+              title sku quantity
+              image{ url }
+              variant{ id }
+              product{ id }
+            }}}
+          }}
+        }
+      }
+    `);
+    const json = await resp.json();
+    if (json.errors?.length) throw new Error(json.errors.map(e => e.message).join(" | "));
+    const pg = json.data?.orders;
+    if (pg) rawOrders = pg.edges.map(e => e.node);
+  } catch (err) {
+    ordersError = err.message || "Orders unavailable";
+    // Fallback without customer
+    try {
       const resp = await admin.graphql(`
-        query($cursor:String){
-          orders(first:250,after:$cursor,query:"fulfillment_status:unfulfilled OR fulfillment_status:partial",sortKey:CREATED_AT,reverse:true){
-            pageInfo{ hasNextPage endCursor }
+        query{
+          orders(first:250,query:"fulfillment_status:unfulfilled OR fulfillment_status:partial",sortKey:CREATED_AT,reverse:true){
             edges{ node{
               id name createdAt displayFulfillmentStatus
               totalPriceSet{ shopMoney{ amount currencyCode } }
-              customer{ firstName lastName }
               lineItems(first:10){ edges{ node{
                 title sku quantity
                 image{ url }
@@ -245,43 +261,11 @@ export const loader = async ({ request }) => {
             }}
           }
         }
-      `, { variables: { cursor } });
+      `);
       const json = await resp.json();
       if (json.errors?.length) throw new Error(json.errors.map(e => e.message).join(" | "));
-      const pg = json.data?.orders; if (!pg) break;
-      rawOrders = rawOrders.concat(pg.edges.map(e => e.node));
-      hasNext = pg.pageInfo.hasNextPage; cursor = pg.pageInfo.endCursor;
-    }
-  } catch (err) {
-    ordersError = err.message || "Orders unavailable";
-    // Fallback without customer
-    try {
-      rawOrders = [];
-      let cursor = null, hasNext = true;
-      while (hasNext) {
-        const resp = await admin.graphql(`
-          query($cursor:String){
-            orders(first:250,after:$cursor,query:"fulfillment_status:unfulfilled OR fulfillment_status:partial",sortKey:CREATED_AT,reverse:true){
-              pageInfo{ hasNextPage endCursor }
-              edges{ node{
-                id name createdAt displayFulfillmentStatus
-                totalPriceSet{ shopMoney{ amount currencyCode } }
-                lineItems(first:10){ edges{ node{
-                  title sku quantity
-                  image{ url }
-                  variant{ id }
-                  product{ id }
-                }}}
-              }}
-            }
-          }
-        `, { variables: { cursor } });
-        const json = await resp.json();
-        if (json.errors?.length) throw new Error(json.errors.map(e => e.message).join(" | "));
-        const pg = json.data?.orders; if (!pg) break;
-        rawOrders = rawOrders.concat(pg.edges.map(e => e.node));
-        hasNext = pg.pageInfo.hasNextPage; cursor = pg.pageInfo.endCursor;
-      }
+      const pg = json.data?.orders;
+      if (pg) rawOrders = pg.edges.map(e => e.node);
       ordersError = null;
     } catch (_) { /* keep original error */ }
   }

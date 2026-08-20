@@ -132,50 +132,60 @@ export const loader = async ({ request }) => {
   }
 
   try {
-    let products = [];
-    let cursor = null;
-    let hasNext = true;
+    const url = new URL(request.url);
+    const cursor = url.searchParams.get("cursor");
+    const direction = url.searchParams.get("direction"); // "next" or "prev"
+    let query = url.searchParams.get("q") || "";
 
-    while (hasNext) {
-      const url = `https://${shop}/admin/api/2024-10/graphql.json`;
-      const resp = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Shopify-Access-Token": accessToken,
-        },
-        body: JSON.stringify({
-          query: `
-            query($first: Int!, $after: String) {
-              products(first: $first, after: $after) {
-                pageInfo { hasNextPage endCursor }
-                edges { node {
-                  id title handle
-                  featuredImage { url }
-                  variants(first: 100) {
-                    edges { node { id title sku inventoryQuantity } }
-                  }
-                }}
-              }
-            }
-          `,
-          variables: { first: 250, after: cursor }
-        })
-      });
-
-      if (!resp.ok) {
-        throw new Error("Shopify GraphQL API returned status " + resp.status);
-      }
-
-      const json = await resp.json();
-      const page = json.data?.products;
-      products = products.concat(page?.edges?.map(e => e.node) || []);
-      hasNext = page?.pageInfo?.hasNextPage || false;
-      cursor = page?.pageInfo?.endCursor || null;
+    let first = 50, last = null, after = null, before = null;
+    if (direction === "prev" && cursor) {
+      first = null;
+      last = 50;
+      before = cursor;
+    } else if (direction === "next" && cursor) {
+      after = cursor;
     }
 
+    const shopifyUrl = `https://${shop}/admin/api/2024-10/graphql.json`;
+    const resp = await fetch(shopifyUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Access-Token": accessToken,
+      },
+      body: JSON.stringify({
+        query: `
+          query($first: Int, $last: Int, $after: String, $before: String, $query: String) {
+            products(first: $first, last: $last, after: $after, before: $before, query: $query) {
+              pageInfo { hasNextPage hasPreviousPage endCursor startCursor }
+              edges { node {
+                id title handle
+                featuredImage { url }
+                variants(first: 10) {
+                  edges { node { id title sku inventoryQuantity } }
+                }
+              }}
+            }
+          }
+        `,
+        variables: {
+          first, last, after, before,
+          query: query ? `*${query}*` : null
+        }
+      })
+    });
+
+    if (!resp.ok) {
+      throw new Error("Shopify GraphQL API returned status " + resp.status);
+    }
+
+    const json = await resp.json();
+    const page = json.data?.products;
+    const products = page?.edges?.map(e => e.node) || [];
+    const pageInfo = page?.pageInfo || { hasNextPage: false, hasPreviousPage: false };
+
     const localInventory = await prisma.inventory.findMany();
-    return { products, localInventory, user, shop };
+    return { products, localInventory, user, shop, pageInfo, q: query };
   } catch (err) {
     console.error("[workflow-inventory] Loader failed:", err.message);
     return { error: "Failed to load products from Shopify: " + err.message, user };
@@ -252,13 +262,14 @@ function exportCSV(variants) {
   URL.revokeObjectURL(url);
 }
 
-export default function StandaloneInventory() {
-  const data = useLoaderData();
+// component
+export default function WorkflowInventory() {
+  const { products, localInventory, user, pageInfo, q, error } = useLoaderData();
   const submit = useSubmit();
   const navigation = useNavigation();
-  const isSaving = navigation.state === "submitting";
+  const isSaving = navigation.state !== "idle";
 
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(q || "");
   const [tabIndex, setTabIndex] = useState(0);
   const [edits, setEdits] = useState({});
   const [toast, setToast] = useState(null);
@@ -268,17 +279,16 @@ export default function StandaloneInventory() {
     setTimeout(()=>setToast(null), 3000);
   }
 
-  if (data.error) {
+  if (error) {
     return (
-      <div style={{padding:40, maxWidth:600, margin:"0 auto", textAlign:"center", fontFamily:"sans-serif"}}>
-        <h2 style={{color:"#9A2A3A", marginBottom:14}}>Configuration Needed</h2>
-        <p style={{fontSize:14, color:"#666", lineHeight:1.6, marginBottom:20}}>{data.error}</p>
-        <Link to="/workflow/orders" style={{color:"#B8782A", textDecoration:"underline"}}>← Return to Orders Dashboard</Link>
+      <div style={{padding:"60px 20px", textAlign:"center", fontFamily:"'DM Sans',sans-serif"}}>
+        <h2 style={{fontSize:22, marginBottom:10}}>Cannot Access Inventory</h2>
+        <p style={{fontSize:14, color:"#666", lineHeight:1.6, marginBottom:20}}>{error}</p>
+        <Link to="/workflow/orders" style={{display:"inline-block", padding:"8px 16px", background:"var(--text)", color:"#fff", textDecoration:"none", borderRadius:6}}>Go to Orders</Link>
       </div>
     );
   }
 
-  const { products, localInventory, user } = data;
 
   // Flatten variants
   const variants = useMemo(() => {
@@ -299,22 +309,15 @@ export default function StandaloneInventory() {
     return list;
   }, [products, localInventory]);
 
+  // Client-side filtering ONLY for tabs, since search is server-side
   const filtered = useMemo(() => {
-    const q = query.toLowerCase().trim();
     return variants.filter(v => {
-      const matchQ = !q ||
-        v.pTitle.toLowerCase().includes(q) ||
-        v.sku.toLowerCase().includes(q) ||
-        v.vTitle.toLowerCase().includes(q) ||
-        v.bin.toLowerCase().includes(q);
       const filter = ["All", "Low Stock", "Out of Stock"][tabIndex];
-      const matchF =
-        filter === "All" ? true :
-          filter === "Low Stock" ? (v.shopifyQty > 0 && v.shopifyQty <= 5) :
-            filter === "Out of Stock" ? v.shopifyQty <= 0 : true;
-      return matchQ && matchF;
+      if (filter === "Low Stock") return (v.shopifyQty > 0 && v.shopifyQty <= 5);
+      if (filter === "Out of Stock") return v.shopifyQty <= 0;
+      return true;
     });
-  }, [variants, query, tabIndex]);
+  }, [variants, tabIndex]);
 
   const editedCount = Object.keys(edits).length;
 
@@ -448,15 +451,20 @@ export default function StandaloneInventory() {
         {/* Filter and Search Card */}
         <div className="filter-card">
           <div className="filter-top">
-            <div className="search-wrap">
-              <span className="search-icon">🔍</span>
-              <input
-                className="search-input"
-                type="text"
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder="Search by product, SKU, variant, or bin location…"
-              />
+            <div className="search-wrap" style={{ flex: 1 }}>
+              <form method="get" style={{ display: "flex", width: "100%", gap: 10 }}>
+                <span className="search-icon">🔍</span>
+                <input
+                  className="search-input"
+                  name="q"
+                  type="text"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder="Search entire catalog..."
+                  style={{ flex: 1 }}
+                />
+                <button type="submit" className="btn btn-slim" style={{ marginLeft: 10 }} disabled={isSaving}>Search</button>
+              </form>
             </div>
             {editedCount > 0 && (
               <button className="btn btn-primary" onClick={saveAll} disabled={isSaving}>
@@ -572,6 +580,34 @@ export default function StandaloneInventory() {
               )}
             </tbody>
           </table>
+          <div style={{ padding: "16px", display: "flex", justifyContent: "center", gap: "10px", borderTop: "1px solid var(--border)" }}>
+            <button 
+              className="btn" 
+              disabled={!pageInfo.hasPreviousPage}
+              onClick={() => {
+                const fd = new FormData();
+                fd.append("direction", "prev");
+                fd.append("cursor", pageInfo.startCursor);
+                if (q) fd.append("q", q);
+                submit(fd, { method: "get" });
+              }}
+            >
+              Previous Page
+            </button>
+            <button 
+              className="btn" 
+              disabled={!pageInfo.hasNextPage}
+              onClick={() => {
+                const fd = new FormData();
+                fd.append("direction", "next");
+                fd.append("cursor", pageInfo.endCursor);
+                if (q) fd.append("q", q);
+                submit(fd, { method: "get" });
+              }}
+            >
+              Next Page
+            </button>
+          </div>
         </div>
       </main>
 

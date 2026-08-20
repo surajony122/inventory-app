@@ -1,8 +1,8 @@
-import { useLoaderData, useSubmit, useNavigation, useRouteError } from "react-router";
+import { useLoaderData, useSubmit, useNavigation, useRouteError, Form } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import {
   Page, Layout, Card, IndexTable, Badge, Text, Box, TextField,
-  Thumbnail, InlineStack, Button, BlockStack, Divider, Tabs,
+  Thumbnail, InlineStack, Button, BlockStack, Divider, Tabs, Pagination
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
@@ -36,35 +36,50 @@ function exportCSV(variants) {
 // ── loader ────────────────────────────────────────────────────────────────────
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
+  const url = new URL(request.url);
+  const cursor = url.searchParams.get("cursor");
+  const direction = url.searchParams.get("direction"); // "next" or "prev"
+  let query = url.searchParams.get("q") || "";
 
-  // Cursor-paginate all products
-  let products = [];
-  let cursor = null;
-  let hasNext = true;
-  while (hasNext) {
-    const resp = await admin.graphql(`
-      query($first: Int!, $after: String) {
-        products(first: $first, after: $after) {
-          pageInfo { hasNextPage endCursor }
-          edges { node {
-            id title handle
-            featuredImage { url }
-            variants(first: 100) {
-              edges { node { id title sku inventoryQuantity } }
-            }
-          }}
-        }
-      }
-    `, { variables: { first: 250, after: cursor } });
-    const json = await resp.json();
-    const page = json.data?.products;
-    products = products.concat(page?.edges?.map(e => e.node) || []);
-    hasNext = page?.pageInfo?.hasNextPage || false;
-    cursor = page?.pageInfo?.endCursor || null;
+  // Append Shopify query filter based on tab if needed, but for now we just use the raw search
+  let shopifyQuery = query;
+
+  let first = 50, last = null, after = null, before = null;
+  if (direction === "prev" && cursor) {
+    first = null;
+    last = 50;
+    before = cursor;
+  } else if (direction === "next" && cursor) {
+    after = cursor;
   }
 
+  const resp = await admin.graphql(`
+    query($first: Int, $last: Int, $after: String, $before: String, $query: String) {
+      products(first: $first, last: $last, after: $after, before: $before, query: $query) {
+        pageInfo { hasNextPage hasPreviousPage endCursor startCursor }
+        edges { node {
+          id title handle
+          featuredImage { url }
+          variants(first: 10) {
+            edges { node { id title sku inventoryQuantity } }
+          }
+        }}
+      }
+    }
+  `, {
+    variables: {
+      first, last, after, before,
+      query: shopifyQuery ? `*${shopifyQuery}*` : null
+    }
+  });
+
+  const json = await resp.json();
+  const page = json.data?.products;
+  const products = page?.edges?.map(e => e.node) || [];
+  const pageInfo = page?.pageInfo || { hasNextPage: false, hasPreviousPage: false };
+
   const localInventory = await prisma.inventory.findMany();
-  return { products, localInventory };
+  return { products, localInventory, pageInfo, q: query };
 };
 
 // ── action ────────────────────────────────────────────────────────────────────
@@ -107,12 +122,12 @@ const FILTER_TABS = ["All", "Low Stock", "Out of Stock"];
 
 // ── component ─────────────────────────────────────────────────────────────────
 export default function InventoryPage() {
-  const { products, localInventory } = useLoaderData();
+  const { products, localInventory, pageInfo, q } = useLoaderData();
   const submit = useSubmit();
   const navigation = useNavigation();
-  const isLoading = navigation.state === "submitting";
+  const isLoading = navigation.state !== "idle";
 
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(q);
   const [tabIndex, setTabIndex] = useState(0);
   const [edits, setEdits] = useState({});
 
@@ -135,22 +150,15 @@ export default function InventoryPage() {
     return list;
   }, [products, localInventory]);
 
+  // Client-side filtering ONLY for tabs, since search is server-side
   const filtered = useMemo(() => {
-    const q = query.toLowerCase();
     return variants.filter(v => {
-      const matchQ = !q ||
-        v.pTitle.toLowerCase().includes(q) ||
-        v.sku.toLowerCase().includes(q) ||
-        v.vTitle.toLowerCase().includes(q) ||
-        v.bin.toLowerCase().includes(q);
       const filter = FILTER_TABS[tabIndex];
-      const matchF =
-        filter === "All" ? true :
-          filter === "Low Stock" ? (v.shopifyQty > 0 && v.shopifyQty <= 5) :
-            filter === "Out of Stock" ? v.shopifyQty <= 0 : true;
-      return matchQ && matchF;
+      if (filter === "Low Stock") return (v.shopifyQty > 0 && v.shopifyQty <= 5);
+      if (filter === "Out of Stock") return v.shopifyQty <= 0;
+      return true;
     });
-  }, [variants, query, tabIndex]);
+  }, [variants, tabIndex]);
 
   const editedCount = Object.keys(edits).length;
 
@@ -274,15 +282,15 @@ export default function InventoryPage() {
   return (
     <Page
       title="Warehouse Inventory"
-      subtitle={`${variants.length} variants across ${products.length} products`}
+      subtitle={`Showing page of ${variants.length} variants across ${products.length} products`}
       primaryAction={
         editedCount > 0
           ? { content: `Save All (${editedCount})`, onAction: saveAll, loading: isLoading }
-          : { content: "Export CSV", onAction: () => exportCSV(filtered) }
+          : { content: "Export Page CSV", onAction: () => exportCSV(filtered) }
       }
       secondaryActions={
         editedCount > 0
-          ? [{ content: "Export CSV", onAction: () => exportCSV(filtered) }]
+          ? [{ content: "Export Page CSV", onAction: () => exportCSV(filtered) }]
           : []
       }
     >
@@ -310,16 +318,22 @@ export default function InventoryPage() {
               <Box padding="400">
                 <InlineStack gap="300" align="space-between">
                   <div style={{ flex: 1 }}>
-                    <TextField
-                      label="Search"
-                      value={query}
-                      onChange={setQuery}
-                      placeholder="Search by product, SKU, variant, or bin…"
-                      labelHidden
-                      autoComplete="off"
-                      clearButton
-                      onClearButtonClick={() => setQuery("")}
-                    />
+                    <Form method="get" style={{ display: "flex", gap: "10px" }}>
+                      <div style={{ flex: 1 }}>
+                        <TextField
+                          name="q"
+                          label="Search"
+                          value={query}
+                          onChange={setQuery}
+                          placeholder="Search entire catalog..."
+                          labelHidden
+                          autoComplete="off"
+                          clearButton
+                          onClearButtonClick={() => { setQuery(""); submit(new FormData(), { method: "get" }); }}
+                        />
+                      </div>
+                      <Button submit loading={isLoading}>Search</Button>
+                    </Form>
                   </div>
                   {editedCount > 0 && (
                     <Button variant="primary" onClick={saveAll} loading={isLoading}>
@@ -354,6 +368,28 @@ export default function InventoryPage() {
               >
                 {rowMarkup}
               </IndexTable>
+              <Box padding="400">
+                <InlineStack align="center">
+                  <Pagination
+                    hasPrevious={pageInfo.hasPreviousPage}
+                    onPrevious={() => {
+                      const fd = new FormData();
+                      fd.append("direction", "prev");
+                      fd.append("cursor", pageInfo.startCursor);
+                      if (q) fd.append("q", q);
+                      submit(fd, { method: "get" });
+                    }}
+                    hasNext={pageInfo.hasNextPage}
+                    onNext={() => {
+                      const fd = new FormData();
+                      fd.append("direction", "next");
+                      fd.append("cursor", pageInfo.endCursor);
+                      if (q) fd.append("q", q);
+                      submit(fd, { method: "get" });
+                    }}
+                  />
+                </InlineStack>
+              </Box>
             </Card>
           </Box>
         </Layout.Section>
