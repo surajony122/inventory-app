@@ -442,13 +442,13 @@ export const loader = async ({ request }) => {
   // 2. Calling it triggers a Shopify session-token round-trip that shows "200"
 
   const dataPromise = (async () => {
-    const completedWorkflows = await prisma.orderWorkflow.findMany({
+    const activeWorkflows = await prisma.orderWorkflow.findMany({
       where: {
-        status: { in: ["Dispatched", "Cancelled"] }
+        status: { notIn: ["Dispatched", "Cancelled"] }
       },
       select: { id: true }
     });
-    const completedIds = completedWorkflows.map(w => w.id);
+    const activeIds = activeWorkflows.map(w => w.id);
 
     const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -456,11 +456,8 @@ export const loader = async ({ request }) => {
       prisma.orderCache.findMany({
         where: {
           OR: [
-            { id: { notIn: completedIds } },
-            {
-              id: { in: completedIds },
-              createdAt: { gte: last30Days }
-            }
+            { id: { in: activeIds } },
+            { createdAt: { gte: last30Days } }
           ]
         },
         orderBy: { updatedAt: "desc" }
