@@ -91,9 +91,9 @@ export async function loader({ request }) {
     }
 
     await transporter.sendMail({
-      from: \`"Unniyarcha Workflow" <\${process.env.SMTP_USER}>\`,
+      from: `"Unniyarcha Workflow" <${process.env.SMTP_USER}>`,
       to: "pulkit@unniyarcha.com",
-      subject: \`Daily Workflow Report - \${new Date().toLocaleDateString()}\`,
+      subject: `Daily Workflow Report - ${new Date().toLocaleDateString()}`,
       html: html
     });
 
