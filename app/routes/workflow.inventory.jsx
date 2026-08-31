@@ -20,22 +20,22 @@ const CSS = `
   --shadow-sm:0 2px 6px rgba(60,45,20,0.07);
   --shadow-lg:0 16px 40px rgba(60,45,20,0.13),0 4px 8px rgba(60,45,20,0.07);
 }
-html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
+html,body{font-family:'Raleway',sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
 
 /* HEADER */
 .pg-header{background:var(--text);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
 .brand{display:flex;align-items:center;gap:10px;}
 .brand-mark{width:22px;height:22px;border:1.5px solid rgba(255,255,255,0.85);border-radius:6px;display:inline-flex;align-items:center;justify-content:center;}
-.brand-name{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:#fff;}
-.brand-tag{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1px;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);padding:2px 6px;border-radius:4px;margin-left:4px;font-family:'DM Sans',sans-serif;}
+.brand-name{font-family:'Montserrat',sans-serif;font-size:20px;font-weight:600;color:#fff;}
+.brand-tag{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1px;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);padding:2px 6px;border-radius:4px;margin-left:4px;font-family:'Raleway',sans-serif;}
 .hd-right{display:flex;align-items:center;gap:16px;}
-.hd-link{font-size:11px;font-weight:500;padding:6px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.75);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;font-family:'DM Sans',sans-serif;}
+.hd-link{font-size:11px;font-weight:500;padding:6px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.75);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;font-family:'Raleway',sans-serif;}
 .hd-link:hover,.hd-link.active{background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.35);}
 
 /* MAIN CONTAINER */
 .pg-main{padding:24px 28px;max-width:1200px;margin:0 auto;}
 .pg-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
-.pg-title{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;}
+.pg-title{font-family:'Montserrat',sans-serif;font-size:26px;font-weight:600;}
 .pg-sub{font-size:12px;color:var(--text-3);margin-top:2px;}
 
 /* STATS CARDS */
@@ -43,23 +43,23 @@ html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:16px 20px;box-shadow:var(--shadow-xs);position:relative;overflow:hidden;}
 .stat-card::before{content:"";position:absolute;top:0;left:0;bottom:0;width:3px;background:var(--accent-line, var(--border-strong));}
 .stat-label{font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;}
-.stat-val{font-size:28px;font-weight:600;margin-top:6px;font-family:'Cormorant Garamond',serif;line-height:1;}
+.stat-val{font-size:28px;font-weight:600;margin-top:6px;font-family:'Montserrat',sans-serif;line-height:1;}
 
 /* FILTER & SEARCH ROW */
 .filter-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 20px;box-shadow:var(--shadow-xs);margin-bottom:16px;display:flex;flex-direction:column;gap:14px;}
 .filter-top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
 .search-wrap{flex:1;min-width:280px;position:relative;}
-.search-input{width:100%;padding:9px 12px 9px 34px;border:1px solid var(--border-md);border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface-2);color:var(--text);outline:none;transition:all 0.15s;}
+.search-input{width:100%;padding:9px 12px 9px 34px;border:1px solid var(--border-md);border-radius:var(--r-sm);font-family:'Raleway',sans-serif;font-size:13px;background:var(--surface-2);color:var(--text);outline:none;transition:all 0.15s;}
 .search-input:focus{border-color:var(--gold);background:var(--surface);}
 .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-3);pointer-events:none;}
 .filter-tabs{display:flex;gap:4px;border-bottom:1.5px solid var(--border);padding-bottom:1px;}
-.filter-tab{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:6px 12px;border:none;background:none;cursor:pointer;color:var(--text-2);position:relative;transition:color 0.12s;}
+.filter-tab{font-family:'Raleway',sans-serif;font-size:12px;font-weight:500;padding:6px 12px;border:none;background:none;cursor:pointer;color:var(--text-2);position:relative;transition:color 0.12s;}
 .filter-tab:hover{color:var(--text);}
 .filter-tab.active{color:var(--gold);font-weight:600;}
 .filter-tab.active::after{content:"";position:absolute;bottom:-2px;left:0;right:0;height:2.5px;background:var(--gold);border-radius:10px;}
 
 /* BUTTONS */
-.btn{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:8px 16px;border-radius:var(--r-sm);border:1px solid var(--border-md);background:var(--surface);color:var(--text);cursor:pointer;transition:all 0.12s;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+.btn{font-family:'Raleway',sans-serif;font-size:12px;font-weight:500;padding:8px 16px;border-radius:var(--r-sm);border:1px solid var(--border-md);background:var(--surface);color:var(--text);cursor:pointer;transition:all 0.12s;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
 .btn:hover{background:var(--surface-2);}
 .btn-primary{background:var(--text);color:#fff;border-color:var(--text);}
 .btn-primary:hover{opacity:0.85;}
@@ -78,11 +78,11 @@ html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text
 
 /* CELLS */
 .thumb{width:38px;height:38px;border-radius:7px;object-fit:cover;border:1px solid var(--border);display:block;background:var(--surface-3);}
-.thumb-ph{width:38px;height:38px;border-radius:7px;background:var(--surface-3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--text-3);}
+.thumb-ph{width:38px;height:38px;border-radius:7px;background:var(--surface-3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Montserrat',sans-serif;font-size:15px;color:var(--text-3);}
 .prod-title{font-weight:600;font-size:13px;}
 .var-title{font-size:11px;color:var(--text-3);margin-top:1px;}
 .sku-txt{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-2);}
-.input-tbl{width:100%;padding:6px 10px;border:1px solid var(--border-md);border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;background:var(--surface);transition:all 0.12s;}
+.input-tbl{width:100%;padding:6px 10px;border:1px solid var(--border-md);border-radius:var(--r-sm);font-family:'Raleway',sans-serif;font-size:13px;outline:none;background:var(--surface);transition:all 0.12s;}
 .input-tbl:focus{border-color:var(--gold);background:var(--surface);}
 .input-tbl.changed{border-color:var(--gold);background:#FFFDF0;}
 
@@ -281,7 +281,7 @@ export default function WorkflowInventory() {
 
   if (error) {
     return (
-      <div style={{padding:"60px 20px", textAlign:"center", fontFamily:"'DM Sans',sans-serif"}}>
+      <div style={{padding:"60px 20px", textAlign:"center", fontFamily:"'Raleway',sans-serif"}}>
         <h2 style={{fontSize:22, marginBottom:10}}>Cannot Access Inventory</h2>
         <p style={{fontSize:14, color:"#666", lineHeight:1.6, marginBottom:20}}>{error}</p>
         <Link to="/workflow/orders" style={{display:"inline-block", padding:"8px 16px", background:"var(--text)", color:"#fff", textDecoration:"none", borderRadius:6}}>Go to Orders</Link>
@@ -384,7 +384,7 @@ export default function WorkflowInventory() {
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com"/>
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap"/>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap"/>
       <style dangerouslySetInnerHTML={{ __html: CSS }}/>
 
       {/* Header */}
@@ -402,7 +402,7 @@ export default function WorkflowInventory() {
 
         <div className="hd-right">
           {user?.name && (
-            <span style={{fontSize:11, color:"rgba(255,255,255,0.45)", fontFamily:"'DM Sans',sans-serif"}}>
+            <span style={{fontSize:11, color:"rgba(255,255,255,0.45)", fontFamily:"'Raleway',sans-serif"}}>
               {user.name}
             </span>
           )}

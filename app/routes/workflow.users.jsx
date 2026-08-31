@@ -18,27 +18,27 @@ const CSS = `
   --shadow-xs:0 1px 2px rgba(60,45,20,0.06);
   --shadow-sm:0 2px 6px rgba(60,45,20,0.07);
 }
-html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
+html,body{font-family:'Raleway',sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
 
 .pg-header{background:var(--text);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
 .brand{display:flex;align-items:center;gap:10px;}
 .brand-mark{width:22px;height:22px;border:1.5px solid rgba(255,255,255,0.85);border-radius:6px;display:inline-flex;align-items:center;justify-content:center;}
-.brand-name{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:#fff;}
-.brand-tag{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1px;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);padding:2px 6px;border-radius:4px;margin-left:4px;font-family:'DM Sans',sans-serif;}
+.brand-name{font-family:'Montserrat',sans-serif;font-size:20px;font-weight:600;color:#fff;}
+.brand-tag{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1px;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);padding:2px 6px;border-radius:4px;margin-left:4px;font-family:'Raleway',sans-serif;}
 .hd-right{display:flex;align-items:center;gap:16px;}
-.hd-link{font-size:11px;font-weight:500;padding:6px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.75);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;font-family:'DM Sans',sans-serif;}
+.hd-link{font-size:11px;font-weight:500;padding:6px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.75);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;font-family:'Raleway',sans-serif;}
 .hd-link:hover,.hd-link.active{background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.35);}
 
 .pg-main{padding:24px 28px;max-width:1000px;margin:0 auto;}
-.section-title{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;}
+.section-title{font-family:'Montserrat',sans-serif;font-size:24px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;}
 
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;box-shadow:var(--shadow-xs);}
 .form-grid{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;}
 .field-lbl{font-size:11px;font-weight:500;color:var(--text-2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;display:block;}
-.field-input{width:100%;padding:8px 12px;border:1px solid var(--border-md);border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:13px;}
+.field-input{width:100%;padding:8px 12px;border:1px solid var(--border-md);border-radius:var(--r-sm);font-family:'Raleway',sans-serif;font-size:13px;}
 .field-input:focus{border-color:var(--gold);outline:none;}
 
-.btn{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:8px 16px;border-radius:var(--r-sm);border:1px solid var(--border-md);background:var(--surface);color:var(--text);cursor:pointer;transition:all 0.12s;}
+.btn{font-family:'Raleway',sans-serif;font-size:13px;font-weight:500;padding:8px 16px;border-radius:var(--r-sm);border:1px solid var(--border-md);background:var(--surface);color:var(--text);cursor:pointer;transition:all 0.12s;}
 .btn:hover{background:var(--surface-2);}
 .btn-primary{background:var(--text);color:#fff;border-color:var(--text);}
 .btn-primary:hover{opacity:0.85;}
@@ -213,7 +213,7 @@ export default function WorkflowUsers() {
 
         <div className="hd-right">
           {currentUser?.name && (
-            <span style={{fontSize:11,color:"rgba(255,255,255,0.45)",fontFamily:"'DM Sans',sans-serif"}}>
+            <span style={{fontSize:11,color:"rgba(255,255,255,0.45)",fontFamily:"'Raleway',sans-serif"}}>
               {currentUser.name}
             </span>
           )}

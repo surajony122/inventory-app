@@ -13,22 +13,22 @@ const CSS = `
   --r-sm:8px;--r-md:12px;--r-lg:16px;--r-xl:20px;
   --shadow-lg:0 16px 40px rgba(60,45,20,0.13),0 4px 8px rgba(60,45,20,0.07);
 }
-html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+html,body{font-family:'Raleway',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;display:flex;align-items:center;justify-content:center;}
 .wrap{width:100%;max-width:400px;padding:20px;}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:36px 32px;box-shadow:var(--shadow-lg);text-align:center;}
 .brand-mark{width:48px;height:48px;border:1.5px solid var(--border-md);border-radius:12px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;}
-.brand-name{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.brand-name{font-family:'Montserrat',sans-serif;font-size:24px;font-weight:600;color:var(--text);margin-bottom:4px;}
 .brand-sub{font-size:12px;color:var(--text-3);margin-bottom:28px;}
 .step-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px;}
 .step-desc{font-size:12px;color:var(--text-2);margin-bottom:24px;line-height:1.5;}
 .field-lbl{font-size:11px;font-weight:500;color:var(--text-2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:left;display:block;}
-.field-input{width:100%;padding:11px 14px;border:1.5px solid var(--border-md);border-radius:var(--r-sm);background:var(--bg);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color 0.15s;margin-bottom:14px;}
+.field-input{width:100%;padding:11px 14px;border:1.5px solid var(--border-md);border-radius:var(--r-sm);background:var(--bg);font-family:'Raleway',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color 0.15s;margin-bottom:14px;}
 .field-input:focus{border-color:var(--gold);}
 .otp-input{font-family:'DM Mono',monospace;font-size:22px;font-weight:500;text-align:center;letter-spacing:8px;}
-.submit-btn{width:100%;padding:12px;border:none;border-radius:var(--r-sm);background:var(--text);color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.15s;}
+.submit-btn{width:100%;padding:12px;border:none;border-radius:var(--r-sm);background:var(--text);color:#fff;font-family:'Raleway',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.15s;}
 .submit-btn:hover:not(:disabled){opacity:0.85;}
 .submit-btn:disabled{opacity:0.5;cursor:not-allowed;}
-.back-link{display:inline-block;margin-top:14px;font-size:12px;color:var(--text-3);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:underline;}
+.back-link{display:inline-block;margin-top:14px;font-size:12px;color:var(--text-3);background:none;border:none;cursor:pointer;font-family:'Raleway',sans-serif;text-decoration:underline;}
 .back-link:hover{color:var(--text-2);}
 .msg-ok{background:var(--teal-bg);border:1px solid rgba(42,122,106,0.2);border-radius:var(--r-sm);padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--teal-text);text-align:left;}
 .msg-err{background:var(--rose-bg);border:1px solid rgba(154,42,58,0.2);border-radius:var(--r-sm);padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--rose-text);text-align:left;}
@@ -55,7 +55,7 @@ export default function WorkflowLogin() {
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com"/>
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap"/>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap"/>
       <style dangerouslySetInnerHTML={{ __html: CSS }}/>
 
       <div className="wrap">
