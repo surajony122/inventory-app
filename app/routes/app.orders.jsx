@@ -567,7 +567,7 @@ export function InnerOrdersPage({ init, initInv, initLastSync, isEmpty }){
   const [bulkPending, setBulkPending] = useState(null);
   const [toast,       setToast]       = useState(null);
   const [inventory,   setInventory]   = useState(initInv || []);
-  const [showAnalytics, setShowAnalytics] = useState(true);
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   useEffect(()=>{ setOrders(init); },[init]);
   useEffect(()=>{ setInventory(initInv || []); },[initInv]);
@@ -1087,7 +1087,13 @@ export function InnerOrdersPage({ init, initInv, initLastSync, isEmpty }){
         </div>
 
         {/* Analytics Toggle Button */}
-        <div style={{marginBottom:16, display:"flex", justifyContent:"flex-end"}}>
+        <div style={{marginBottom:16, display:"flex", justifyContent:"flex-end", gap:"10px"}}>
+          <button className="dl-btn" onClick={() => {
+            setToast({msg:"Refreshing...", type:"info"});
+            revalidate();
+          }} style={{background:"var(--blue-bg)", color:"var(--blue-text)", border:"1px solid var(--blue)", cursor:"pointer"}}>
+            ↻ Refresh Data
+          </button>
           <button className="dl-btn" onClick={()=>setShowAnalytics(!showAnalytics)} style={{background:"var(--surface-2)", color:"var(--text-2)", border:"1px solid var(--border)", cursor:"pointer"}}>
             {showAnalytics ? "Hide Analytics ↗" : "Show Analytics ↗"}
           </button>
