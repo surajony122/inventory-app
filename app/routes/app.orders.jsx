@@ -44,7 +44,7 @@ html,body{font-family:'Raleway',sans-serif;background:var(--bg);color:var(--text
 .hd-link:hover, .hd-link.active{background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.35);}
 
 /* LAYOUT */
-.pg-main{padding:24px 28px;max-width:1380px;margin:0 auto;}
+.pg-main{padding:24px 28px;max-width:1600px;margin:0 auto;}
 
 /* TOP ROW */
 .top-row{display:flex;gap:16px;margin-bottom:20px;align-items:flex-start;flex-wrap:wrap;}
@@ -131,15 +131,15 @@ html,body{font-family:'Raleway',sans-serif;background:var(--bg);color:var(--text
 .bulk-x:hover{color:#fff;}
 
 /* TABLE */
-.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow-x:auto;overflow-y:hidden;box-shadow:var(--shadow-xs);-webkit-overflow-scrolling:touch;}
+.tbl-wrap{background:#fff;border:1px solid var(--border-md);border-radius:var(--r-lg);overflow-x:auto;overflow-y:hidden;box-shadow:var(--shadow-sm);-webkit-overflow-scrolling:touch;}
 .ord-table{width:100%;border-collapse:collapse;}
-.ord-table thead tr{border-bottom:1px solid var(--border-md);}
-.ord-table th{text-align:left;padding:10px 14px;font-size:10px;font-weight: 400;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;background:var(--surface-2);}
+.ord-table thead tr{border-bottom:2px solid var(--border-md);}
+.ord-table th{text-align:left;padding:12px 18px;font-size:10px;font-weight: 600;color:var(--text-2);text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;background:var(--surface-2);}
 .ord-table th.chk-col{width:40px;}
-.ord-table td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
+.ord-table td{padding:12px 18px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
+.ord-table tr:hover td{background:rgba(0,0,0,0.015);}
 .ord-table tr:last-child td{border-bottom:none;}
 .ord-table tbody tr{cursor:pointer;transition:background 0.08s;}
-.ord-table tbody tr:hover td{background:var(--surface-2);}
 .ord-table tbody tr.sel td{background:#EEF3FA;}
 input[type=checkbox]{width:14px;height:14px;accent-color:var(--blue);cursor:pointer;display:block;}
 
