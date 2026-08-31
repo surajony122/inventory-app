@@ -249,18 +249,7 @@ function stockLabel(qty) {
   return "In Stock";
 }
 
-function exportCSV(variants) {
-  const header = ["Product", "Variant", "SKU", "Shopify Qty", "Warehouse Qty", "Bin Location", "Notes"];
-  const rows = variants.map(v =>
-    [v.pTitle, v.vTitle, v.sku || "", v.shopifyQty, v.whQty, v.bin, (v.note || "").replace(/,/g, " ")]
-      .map(c => `"${c}"`).join(",")
-  );
-  const csv = [header.join(","), ...rows].join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a"); a.href = url; a.download = "warehouse-inventory.csv"; a.click();
-  URL.revokeObjectURL(url);
-}
+
 
 // component
 export default function WorkflowInventory() {
@@ -269,8 +258,83 @@ export default function WorkflowInventory() {
   const navigation = useNavigation();
   const isSaving = navigation.state !== "idle";
 
-  const [query, setQuery] = useState(q || "");
-  const [tabIndex, setTabIndex] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [qInput, setQInput] = useState(q || "");
+
+  const EXPORT_COLUMNS = [
+    { id: "product", label: "Product" },
+    { id: "variant", label: "Variant" },
+    { id: "sku", label: "SKU" },
+    { id: "shopifyQty", label: "Shopify Qty" },
+    { id: "whQty", label: "Warehouse Qty" },
+    { id: "bin", label: "Bin Location" },
+    { id: "notes", label: "Notes" }
+  ];
+  const [showExport, setShowExport] = useState(false);
+  const [exportCols, setExportCols] = useState(new Set(EXPORT_COLUMNS.map(c => c.id)));
+
+  function doExport() {
+    const cols = EXPORT_COLUMNS.filter(c => exportCols.has(c.id));
+    const hdr = cols.map(c => c.label);
+    const rows = filtered.map(v => {
+      return cols.map(c => {
+        switch(c.id) {
+          case "product": return v.pTitle;
+          case "variant": return v.vTitle;
+          case "sku": return v.sku || "";
+          case "shopifyQty": return v.shopifyQty;
+          case "whQty": return v.whQty;
+          case "bin": return v.bin;
+          case "notes": return (v.note || "").replace(/,/g, " ");
+          default: return "";
+        }
+      }).map(val => `"${val}"`).join(",");
+    });
+    
+    const csv = [hdr.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); 
+    a.href = url; 
+    a.download = "warehouse-inventory.csv"; 
+    a.click();
+    URL.revokeObjectURL(url);
+    setShowExport(false);
+  }
+
+  function ExportModal() {
+    return (
+      <div className="overlay" onClick={()=>setShowExport(false)}>
+        <div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth: 400}}>
+          <div className="modal-hdr">
+            <div className="modal-title">Export CSV</div>
+            <button className="modal-x" onClick={()=>setShowExport(false)}>✕</button>
+          </div>
+          <div className="modal-body">
+            <div className="section-lbl">Select Columns to Export</div>
+            <div style={{display:"flex", flexDirection:"column", gap:10, marginBottom:20}}>
+              {EXPORT_COLUMNS.map(c => (
+                <label key={c.id} style={{display:"flex", alignItems:"center", gap:8, cursor:"pointer", fontSize:13}}>
+                  <input type="checkbox" checked={exportCols.has(c.id)} onChange={e => {
+                    const n = new Set(exportCols);
+                    e.target.checked ? n.add(c.id) : n.delete(c.id);
+                    setExportCols(n);
+                  }} />
+                  {c.label}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="modal-actions" style={{justifyContent:"flex-end"}}>
+            <button className="btn btn-ghost" onClick={()=>setShowExport(false)}>Cancel</button>
+            <button className="btn btn-primary" onClick={doExport} disabled={exportCols.size === 0}>Download CSV</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Effect to reset edits when server data changes
   const [edits, setEdits] = useState({});
   const [toast, setToast] = useState(null);
 
@@ -428,7 +492,7 @@ export default function WorkflowInventory() {
                 {isSaving ? "Saving..." : `Save All Changes (${editedCount})`}
               </button>
             ) : (
-              <button className="btn" onClick={() => exportCSV(filtered)}>Export CSV</button>
+              <button className="btn" onClick={() => setShowExport(true)}>Export CSV</button>
             )}
           </div>
         </div>
@@ -458,8 +522,8 @@ export default function WorkflowInventory() {
                   className="search-input"
                   name="q"
                   type="text"
-                  value={query}
-                  onChange={e => setQuery(e.target.value)}
+                  value={qInput}
+                  onChange={e => setQInput(e.target.value)}
                   placeholder="Search entire catalog..."
                   style={{ flex: 1 }}
                 />
@@ -611,6 +675,7 @@ export default function WorkflowInventory() {
         </div>
       </main>
 
+      {showExport && ExportModal()}
       {/* Toast Notifications */}
       {toast && (
         <div className="toast-wrap">

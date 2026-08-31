@@ -757,13 +757,85 @@ export function InnerOrdersPage({ init, initInv, initLastSync, isEmpty }){
     setOrders(prev=>prev.map(x=>x.shopifyId!==o.shopifyId?x:{...x,note}));
   }
 
-  function exportCSV(){
-    const hdr=["Order","Customer","Item","SKU","Qty","Payment","Priority","Status","Owner","Aging(d)","Note"];
-    const rows=visible.map(o=>[o.id,o.customer,o.item,o.sku,o.qty,o.paymentStatus,o.priority,o.status,o.owner,o.aging,(o.note||"").replace(/,/g," ")].map(v=>`"${v}"`).join(","));
-    const csv=[hdr.join(","),...rows].join("\n");
-    const a=document.createElement("a");
-    a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
-    a.download=`orders-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  const EXPORT_COLUMNS = [
+    { id: "id", label: "Order" },
+    { id: "customer", label: "Customer" },
+    { id: "item", label: "Item" },
+    { id: "sku", label: "SKU" },
+    { id: "qty", label: "Qty" },
+    { id: "stock", label: "Stock" },
+    { id: "payment", label: "Payment" },
+    { id: "priority", label: "Priority" },
+    { id: "status", label: "Status" },
+    { id: "owner", label: "Owner" },
+    { id: "aging", label: "Aging(d)" },
+    { id: "note", label: "Note" },
+    { id: "tags", label: "Tags" }
+  ];
+  const [showExport, setShowExport] = useState(false);
+  const [exportCols, setExportCols] = useState(new Set(EXPORT_COLUMNS.map(c => c.id)));
+
+  function doExport() {
+    const cols = EXPORT_COLUMNS.filter(c => exportCols.has(c.id));
+    const hdr = cols.map(c => c.label);
+    const rows = visible.map(o => {
+      return cols.map(c => {
+        switch(c.id) {
+          case "id": return o.id;
+          case "customer": return o.customer;
+          case "item": return o.item;
+          case "sku": return o.sku;
+          case "qty": return o.qty;
+          case "stock": return invMap[o.sku] !== undefined ? invMap[o.sku] : "";
+          case "payment": return o.paymentStatus;
+          case "priority": return o.priority;
+          case "status": return o.status;
+          case "owner": return o.owner;
+          case "aging": return o.aging;
+          case "note": return (o.note||"").replace(/,/g," ");
+          case "tags": return (o.tags||"").replace(/,/g,"|");
+          default: return "";
+        }
+      }).map(v => `"${v}"`).join(",");
+    });
+    
+    const csv = [hdr.join(","), ...rows].join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv"}));
+    a.download = `orders-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+    setShowExport(false);
+  }
+
+  function ExportModal() {
+    return (
+      <div className="overlay" onClick={()=>setShowExport(false)}>
+        <div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth: 400}}>
+          <div className="modal-hdr">
+            <div className="modal-title">Export CSV</div>
+            <button className="modal-x" onClick={()=>setShowExport(false)}>✕</button>
+          </div>
+          <div className="modal-body">
+            <div className="section-lbl">Select Columns to Export</div>
+            <div style={{display:"flex", flexDirection:"column", gap:10, marginBottom:20}}>
+              {EXPORT_COLUMNS.map(c => (
+                <label key={c.id} style={{display:"flex", alignItems:"center", gap:8, cursor:"pointer", fontSize:13}}>
+                  <input type="checkbox" checked={exportCols.has(c.id)} onChange={e => {
+                    const n = new Set(exportCols);
+                    e.target.checked ? n.add(c.id) : n.delete(c.id);
+                    setExportCols(n);
+                  }} />
+                  {c.label}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="modal-actions" style={{justifyContent:"flex-end"}}>
+            <button className="btn btn-ghost" onClick={()=>setShowExport(false)}>Cancel</button>
+            <button className="btn btn-primary" onClick={doExport} disabled={exportCols.size === 0}>Download CSV</button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // ── selection helpers ─────────────────────────────────────────────────────
@@ -1218,7 +1290,7 @@ export function InnerOrdersPage({ init, initInv, initLastSync, isEmpty }){
             <option value="Payment pending">Payment pending</option>
             <option value="Authorized">Authorized</option>
           </select>
-          <button className="dl-btn" onClick={exportCSV}>
+          <button className="dl-btn" onClick={() => setShowExport(true)}>
             <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" width="13" height="13">
               <path d="M7 1v8M4 6l3 3 3-3M2 11h10"/>
             </svg>
@@ -1347,6 +1419,7 @@ export function InnerOrdersPage({ init, initInv, initLastSync, isEmpty }){
 
       {selected && OrderModal()}
       {bulkPending && BulkModal()}
+      {showExport && ExportModal()}
 
       {toast&&(
         <div className="toast-wrap">
