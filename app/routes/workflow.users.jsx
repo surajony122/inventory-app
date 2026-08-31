@@ -23,22 +23,22 @@ html,body{font-family:'Raleway',sans-serif;background:var(--bg);color:var(--text
 .pg-header{background:var(--text);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
 .brand{display:flex;align-items:center;gap:10px;}
 .brand-mark{width:22px;height:22px;border:1.5px solid rgba(255,255,255,0.85);border-radius:6px;display:inline-flex;align-items:center;justify-content:center;}
-.brand-name{font-family:'Montserrat',sans-serif;font-size:20px;font-weight:600;color:#fff;}
-.brand-tag{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1px;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);padding:2px 6px;border-radius:4px;margin-left:4px;font-family:'Raleway',sans-serif;}
+.brand-name{font-family:'Montserrat',sans-serif;font-size:20px;font-weight: 400;color:#fff;}
+.brand-tag{font-size:9px;font-weight: 400;text-transform:uppercase;letter-spacing:1px;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);padding:2px 6px;border-radius:4px;margin-left:4px;font-family:'Raleway',sans-serif;}
 .hd-right{display:flex;align-items:center;gap:16px;}
-.hd-link{font-size:11px;font-weight:500;padding:6px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.75);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;font-family:'Raleway',sans-serif;}
+.hd-link{font-size:11px;font-weight: 400;padding:6px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.75);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;font-family:'Raleway',sans-serif;}
 .hd-link:hover,.hd-link.active{background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.35);}
 
 .pg-main{padding:24px 28px;max-width:1000px;margin:0 auto;}
-.section-title{font-family:'Montserrat',sans-serif;font-size:24px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;}
+.section-title{font-family:'Montserrat',sans-serif;font-size: 20px;font-weight: 400;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;}
 
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;box-shadow:var(--shadow-xs);}
 .form-grid{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;}
-.field-lbl{font-size:11px;font-weight:500;color:var(--text-2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;display:block;}
+.field-lbl{font-size:11px;font-weight: 400;color:var(--text-2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;display:block;}
 .field-input{width:100%;padding:8px 12px;border:1px solid var(--border-md);border-radius:var(--r-sm);font-family:'Raleway',sans-serif;font-size:13px;}
 .field-input:focus{border-color:var(--gold);outline:none;}
 
-.btn{font-family:'Raleway',sans-serif;font-size:13px;font-weight:500;padding:8px 16px;border-radius:var(--r-sm);border:1px solid var(--border-md);background:var(--surface);color:var(--text);cursor:pointer;transition:all 0.12s;}
+.btn{font-family:'Raleway',sans-serif;font-size:13px;font-weight: 400;padding:8px 16px;border-radius:var(--r-sm);border:1px solid var(--border-md);background:var(--surface);color:var(--text);cursor:pointer;transition:all 0.12s;}
 .btn:hover{background:var(--surface-2);}
 .btn-primary{background:var(--text);color:#fff;border-color:var(--text);}
 .btn-primary:hover{opacity:0.85;}
@@ -51,7 +51,7 @@ html,body{font-family:'Raleway',sans-serif;background:var(--bg);color:var(--text
 .usr-table td{padding:12px 16px;border-bottom:1px solid var(--border);}
 .usr-table tr:last-child td{border-bottom:none;}
 
-.badge{display:inline-block;font-size:10px;font-weight:500;padding:2px 6px;border-radius:10px;margin-right:4px;background:var(--surface-3);color:var(--text-2);}
+.badge{display:inline-block;font-size:10px;font-weight: 400;padding:2px 6px;border-radius:10px;margin-right:4px;background:var(--surface-3);color:var(--text-2);}
 .badge.active{background:var(--teal-bg);color:var(--teal-text);}
 
 .checkbox-group{display:flex;gap:10px;flex-wrap:wrap;}
@@ -233,7 +233,7 @@ export default function WorkflowUsers() {
 
         {/* Add User Card */}
         <div className="card">
-          <div style={{fontSize:12, fontWeight:600, marginBottom:12, color:"var(--text-2)"}}>ADD NEW MEMBER</div>
+          <div style={{fontSize:12, fontWeight: 400, marginBottom:12, color:"var(--text-2)"}}>ADD NEW MEMBER</div>
           <form onSubmit={handleCreate} className="form-grid">
             <div>
               <label className="field-lbl">Name</label>

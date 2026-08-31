@@ -17,15 +17,15 @@ html,body{font-family:'Raleway',sans-serif;background:var(--bg);color:var(--text
 .wrap{width:100%;max-width:400px;padding:20px;}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:36px 32px;box-shadow:var(--shadow-lg);text-align:center;}
 .brand-mark{width:48px;height:48px;border:1.5px solid var(--border-md);border-radius:12px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;}
-.brand-name{font-family:'Montserrat',sans-serif;font-size:24px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.brand-name{font-family:'Montserrat',sans-serif;font-size: 20px;font-weight: 400;color:var(--text);margin-bottom:4px;}
 .brand-sub{font-size:12px;color:var(--text-3);margin-bottom:28px;}
-.step-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.step-title{font-size:15px;font-weight: 400;color:var(--text);margin-bottom:6px;}
 .step-desc{font-size:12px;color:var(--text-2);margin-bottom:24px;line-height:1.5;}
-.field-lbl{font-size:11px;font-weight:500;color:var(--text-2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:left;display:block;}
+.field-lbl{font-size:11px;font-weight: 400;color:var(--text-2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:left;display:block;}
 .field-input{width:100%;padding:11px 14px;border:1.5px solid var(--border-md);border-radius:var(--r-sm);background:var(--bg);font-family:'Raleway',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color 0.15s;margin-bottom:14px;}
 .field-input:focus{border-color:var(--gold);}
-.otp-input{font-family:'DM Mono',monospace;font-size:22px;font-weight:500;text-align:center;letter-spacing:8px;}
-.submit-btn{width:100%;padding:12px;border:none;border-radius:var(--r-sm);background:var(--text);color:#fff;font-family:'Raleway',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.15s;}
+.otp-input{font-family:'DM Mono',monospace;font-size: 20px;font-weight: 400;text-align:center;letter-spacing:8px;}
+.submit-btn{width:100%;padding:12px;border:none;border-radius:var(--r-sm);background:var(--text);color:#fff;font-family:'Raleway',sans-serif;font-size:14px;font-weight: 400;cursor:pointer;transition:opacity 0.15s;}
 .submit-btn:hover:not(:disabled){opacity:0.85;}
 .submit-btn:disabled{opacity:0.5;cursor:not-allowed;}
 .back-link{display:inline-block;margin-top:14px;font-size:12px;color:var(--text-3);background:none;border:none;cursor:pointer;font-family:'Raleway',sans-serif;text-decoration:underline;}

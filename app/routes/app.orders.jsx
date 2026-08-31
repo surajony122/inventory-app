@@ -32,15 +32,15 @@ html,body{font-family:'Raleway',sans-serif;background:var(--bg);color:var(--text
 .pg-header{background:var(--text);padding:0 28px;display:flex;align-items:center;gap:20px;height:58px;position:sticky;top:0;z-index:60;}
 .brand{display:flex;align-items:center;gap:10px;}
 .brand-mark{width:30px;height:30px;border:1.5px solid rgba(255,255,255,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;}
-.brand-name{font-family:'Montserrat',sans-serif;font-size:18px;font-weight:600;color:#fff;letter-spacing:0.02em;}
+.brand-name{font-family:'Montserrat',sans-serif;font-size:18px;font-weight: 400;color:#fff;letter-spacing:0.02em;}
 .brand-tag{font-size:10px;color:rgba(255,255,255,0.38);font-family:'DM Mono',monospace;text-transform:uppercase;margin-left:2px;}
 .hd-mid{flex:1;display:flex;align-items:center;justify-content:center;}
 .role-tabs{display:flex;gap:2px;}
-.role-tab{font-size:12px;font-weight:500;padding:5px 14px;border-radius:6px;border:none;background:transparent;color:rgba(255,255,255,0.45);cursor:pointer;transition:all 0.15s;font-family:'Raleway',sans-serif;}
+.role-tab{font-size:12px;font-weight: 400;padding:5px 14px;border-radius:6px;border:none;background:transparent;color:rgba(255,255,255,0.45);cursor:pointer;transition:all 0.15s;font-family:'Raleway',sans-serif;}
 .role-tab:hover{color:rgba(255,255,255,0.75);}
 .role-tab.active{background:rgba(255,255,255,0.12);color:#fff;}
 .hd-right{display:flex;align-items:center;gap:10px;}
-.hd-link{font-size:11px;font-weight:500;padding:5px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);cursor:pointer;transition:all 0.15s;text-decoration:none;display:inline-flex;align-items:center;gap:5px;}
+.hd-link{font-size:11px;font-weight: 400;padding:5px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);cursor:pointer;transition:all 0.15s;text-decoration:none;display:inline-flex;align-items:center;gap:5px;}
 .hd-link:hover, .hd-link.active{background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.35);}
 
 /* LAYOUT */
@@ -56,20 +56,20 @@ html,body{font-family:'Raleway',sans-serif;background:var(--bg);color:var(--text
 .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent-line,transparent);}
 .stat-card:hover{box-shadow:var(--shadow-sm);transform:translateY(-1px);}
 .stat-label{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;}
-.stat-num{font-size:28px;font-weight:300;font-family:'Montserrat',sans-serif;line-height:1;}
+.stat-num{font-size: 20px;font-weight:300;font-family:'Montserrat',sans-serif;line-height:1;}
 .stat-num.c-rose{color:var(--rose);}
 .stat-num.c-gold{color:var(--gold);}
 
 /* ALERTS PANEL */
 .alerts-panel{width:220px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;}
-.alerts-panel-title{font-size:11px;font-weight:500;color:var(--text-2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;}
+.alerts-panel-title{font-size:11px;font-weight: 400;color:var(--text-2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;}
 .alert-item{background:var(--rose-bg);border:1px solid rgba(154,42,58,0.15);border-radius:var(--r-md);padding:10px 12px;margin-bottom:7px;cursor:pointer;transition:opacity 0.12s;display:flex;align-items:center;gap:10px;}
 .alert-item:hover{opacity:0.82;}
 .alert-item:last-child{margin-bottom:0;}
 .alert-thumb{width:32px;height:32px;border-radius:6px;object-fit:cover;flex-shrink:0;border:1px solid var(--border);}
 .alert-thumb-ph{width:32px;height:32px;border-radius:6px;background:rgba(154,42,58,0.12);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Montserrat',sans-serif;font-size:14px;color:var(--rose-text);}
 .alert-info{flex:1;min-width:0;}
-.alert-id{font-size:12px;font-weight:500;color:var(--rose-text);}
+.alert-id{font-size:12px;font-weight: 400;color:var(--rose-text);}
 .alert-status{font-size:10px;color:var(--rose);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .alert-age{font-size:10px;color:var(--rose);font-family:'DM Mono',monospace;margin-top:1px;}
 .alerts-ok{background:var(--teal-bg);border:1px solid rgba(42,122,106,0.15);border-radius:var(--r-md);padding:10px 12px;font-size:11px;color:var(--teal-text);display:flex;align-items:center;gap:6px;}
@@ -77,10 +77,10 @@ html,body{font-family:'Raleway',sans-serif;background:var(--bg);color:var(--text
 /* SKU BOARD */
 .sku-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;margin-bottom:14px;}
 .section-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
-.section-title{font-size:12px;font-weight:500;color:var(--text);display:flex;align-items:center;gap:8px;}
+.section-title{font-size:12px;font-weight: 400;color:var(--text);display:flex;align-items:center;gap:8px;}
 .title-pip{width:5px;height:5px;border-radius:50%;background:var(--gold);flex-shrink:0;}
 .view-toggle{display:flex;gap:3px;background:var(--surface-2);border-radius:6px;padding:3px;}
-.vbtn{font-family:'Raleway',sans-serif;font-size:11px;font-weight:500;padding:4px 10px;border-radius:5px;border:none;background:transparent;color:var(--text-2);cursor:pointer;transition:all 0.12s;}
+.vbtn{font-family:'Raleway',sans-serif;font-size:11px;font-weight: 400;padding:4px 10px;border-radius:5px;border:none;background:transparent;color:var(--text-2);cursor:pointer;transition:all 0.12s;}
 .vbtn.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow-xs);}
 .sku-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;}
 .sku-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);cursor:pointer;transition:all 0.15s;overflow:hidden;}
@@ -89,21 +89,21 @@ html,body{font-family:'Raleway',sans-serif;background:var(--bg);color:var(--text
 .sku-img-wrap{width:100%;height:100px;overflow:hidden;background:var(--surface-3);position:relative;}
 .sku-img{width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.3s;}
 .sku-card:hover .sku-img{transform:scale(1.04);}
-.sku-img-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Montserrat',sans-serif;font-size:30px;color:var(--border-strong);}
+.sku-img-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Montserrat',sans-serif;font-size: 20px;color:var(--border-strong);}
 .sku-body{padding:11px 13px;}
 .sku-code{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-3);margin-bottom:2px;letter-spacing:0.3px;}
-.sku-name{font-size:12px;font-weight:500;color:var(--text);line-height:1.3;margin-bottom:7px;}
-.sku-big{font-family:'Montserrat',sans-serif;font-size:28px;font-weight:400;color:var(--text);line-height:1;}
+.sku-name{font-size:12px;font-weight: 400;color:var(--text);line-height:1.3;margin-bottom:7px;}
+.sku-big{font-family:'Montserrat',sans-serif;font-size: 20px;font-weight:400;color:var(--text);line-height:1;}
 .sku-meta{font-size:10px;color:var(--text-3);margin-top:2px;margin-bottom:6px;}
 .sku-bar-bg{height:3px;background:var(--surface-3);border-radius:2px;overflow:hidden;margin-bottom:5px;}
 .sku-bar-fill{height:100%;border-radius:2px;background:var(--blue);transition:width 0.4s ease;}
 .sku-bar-fill.hot{background:var(--gold);}
 .sku-chips{display:flex;gap:4px;flex-wrap:wrap;}
-.schip{font-size:9px;font-weight:500;padding:2px 6px;border-radius:20px;}
+.schip{font-size:9px;font-weight: 400;padding:2px 6px;border-radius:20px;}
 
 /* FILTER BAR */
 .filter-bar{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--gold-text);background:var(--gold-bg);border:1px solid var(--gold-border);border-radius:var(--r-sm);padding:6px 12px;margin-bottom:10px;}
-.filter-clear{margin-left:auto;background:none;border:none;cursor:pointer;font-size:11px;font-family:'Raleway',sans-serif;color:var(--gold-text);font-weight:500;padding:0;text-decoration:underline;}
+.filter-clear{margin-left:auto;background:none;border:none;cursor:pointer;font-size:11px;font-family:'Raleway',sans-serif;color:var(--gold-text);font-weight: 400;padding:0;text-decoration:underline;}
 
 /* TOOLBAR */
 .toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}
@@ -114,15 +114,15 @@ html,body{font-family:'Raleway',sans-serif;background:var(--bg);color:var(--text
 .srch-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-3);pointer-events:none;}
 .tb-sel{padding:8px 12px;border:1px solid var(--border-md);border-radius:var(--r-sm);background:var(--surface);font-family:'Raleway',sans-serif;font-size:13px;color:var(--text);outline:none;cursor:pointer;}
 .tb-sel:focus{border-color:var(--gold);}
-.dl-btn{display:inline-flex;align-items:center;gap:6px;font-family:'Raleway',sans-serif;font-size:12px;font-weight:500;padding:8px 14px;border-radius:var(--r-sm);border:1px solid var(--teal);background:var(--teal-bg);color:var(--teal-text);cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.dl-btn{display:inline-flex;align-items:center;gap:6px;font-family:'Raleway',sans-serif;font-size:12px;font-weight: 400;padding:8px 14px;border-radius:var(--r-sm);border:1px solid var(--teal);background:var(--teal-bg);color:var(--teal-text);cursor:pointer;transition:all 0.15s;white-space:nowrap;}
 .dl-btn:hover{background:var(--teal);color:#fff;}
 
 /* BULK BAR */
 .bulk-bar{display:flex;align-items:center;gap:10px;background:var(--text);color:#fff;border-radius:var(--r-md);padding:10px 16px;margin-bottom:12px;flex-wrap:wrap;animation:slideDown 0.15s ease;}
 @keyframes slideDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
-.bulk-count{font-size:13px;font-weight:500;}
+.bulk-count{font-size:13px;font-weight: 400;}
 .bulk-actions{display:flex;gap:6px;flex-wrap:wrap;}
-.bbtn{font-size:12px;font-weight:500;padding:6px 14px;border-radius:var(--r-sm);border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;cursor:pointer;font-family:'Raleway',sans-serif;transition:background 0.12s;white-space:nowrap;}
+.bbtn{font-size:12px;font-weight: 400;padding:6px 14px;border-radius:var(--r-sm);border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;cursor:pointer;font-family:'Raleway',sans-serif;transition:background 0.12s;white-space:nowrap;}
 .bbtn:hover{background:rgba(255,255,255,0.2);}
 .bbtn.bb-primary{background:#fff;color:var(--text);border-color:transparent;}
 .bbtn.bb-primary:hover{opacity:0.88;}
@@ -134,7 +134,7 @@ html,body{font-family:'Raleway',sans-serif;background:var(--bg);color:var(--text
 .tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow-x:auto;overflow-y:hidden;box-shadow:var(--shadow-xs);-webkit-overflow-scrolling:touch;}
 .ord-table{width:100%;border-collapse:collapse;}
 .ord-table thead tr{border-bottom:1px solid var(--border-md);}
-.ord-table th{text-align:left;padding:10px 14px;font-size:10px;font-weight:500;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;background:var(--surface-2);}
+.ord-table th{text-align:left;padding:10px 14px;font-size:10px;font-weight: 400;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;background:var(--surface-2);}
 .ord-table th.chk-col{width:40px;}
 .ord-table td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
 .ord-table tr:last-child td{border-bottom:none;}
@@ -146,15 +146,15 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--blue);cursor:poin
 /* CELLS */
 .thumb{width:38px;height:38px;border-radius:7px;object-fit:cover;border:1px solid var(--border);display:block;background:var(--surface-3);}
 .thumb-ph{width:38px;height:38px;border-radius:7px;background:var(--surface-3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Montserrat',sans-serif;font-size:15px;color:var(--text-3);}
-.ord-id{font-weight:600;font-size:13px;font-family:'Montserrat',sans-serif;}
+.ord-id{font-weight: 400;font-size:13px;font-family:'Montserrat',sans-serif;}
 .ord-sid{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-3);margin-top:1px;}
 .item-txt{font-size:13px;max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .sku-txt{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-2);}
 .age-ok{font-size:11px;color:var(--text-3);}
-.age-warn{font-size:11px;color:var(--rose);font-weight:600;}
+.age-warn{font-size:11px;color:var(--rose);font-weight: 400;}
 
 /* BADGES */
-.badge{display:inline-block;font-size:10px;font-weight:500;padding:3px 8px;border-radius:20px;white-space:nowrap;}
+.badge{display:inline-block;font-size:10px;font-weight: 400;padding:3px 8px;border-radius:20px;white-space:nowrap;}
 .b-gold{background:var(--gold-bg);color:var(--gold-text);}
 .b-teal{background:var(--teal-bg);color:var(--teal-text);}
 .b-blue{background:var(--blue-bg);color:var(--blue-text);}
@@ -170,42 +170,42 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--blue);cursor:poin
 /* PAGINATION */
 .pg-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid var(--border);font-size:12px;color:var(--text-2);flex-wrap:wrap;gap:8px;}
 .pg-btns{display:flex;gap:4px;}
-.pg-btn{font-size:12px;font-weight:500;padding:4px 9px;border-radius:var(--r-sm);border:1px solid var(--border-md);background:var(--surface);color:var(--text);cursor:pointer;min-width:30px;font-family:'Raleway',sans-serif;}
+.pg-btn{font-size:12px;font-weight: 400;padding:4px 9px;border-radius:var(--r-sm);border:1px solid var(--border-md);background:var(--surface);color:var(--text);cursor:pointer;min-width:30px;font-family:'Raleway',sans-serif;}
 .pg-btn:hover:not(:disabled){background:var(--surface-2);}
 .pg-btn:disabled{opacity:0.35;cursor:not-allowed;}
 .pg-btn.cur{background:var(--text)!important;color:#fff!important;border-color:var(--text)!important;}
 
 /* EMPTY */
 .empty-box{text-align:center;padding:52px 24px;color:var(--text-3);}
-.empty-glyph{font-family:'Montserrat',sans-serif;font-size:44px;color:var(--border-strong);margin-bottom:10px;}
+.empty-glyph{font-family:'Montserrat',sans-serif;font-size: 20px;color:var(--border-strong);margin-bottom:10px;}
 
 /* MODAL */
 .overlay{position:fixed;inset:0;background:rgba(35,31,23,0.5);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px;backdrop-filter:blur(3px);animation:fadeIn 0.15s ease;}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .modal{background:var(--surface);border-radius:var(--r-xl);width:100%;max-width:680px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:slideUp 0.18s ease;}
 @keyframes slideUp{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
-.modal-hdr{padding:22px 24px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;position:sticky;top:0;background:var(--surface);z-index:1;}
-.modal-title{font-family:'Montserrat',sans-serif;font-size:20px;font-weight:600;}
-.modal-sub{font-size:12px;color:var(--text-3);margin-top:3px;}
-.modal-x{background:var(--surface-2);border:none;border-radius:7px;width:28px;height:28px;cursor:pointer;font-size:15px;color:var(--text-2);display:flex;align-items:center;justify-content:center;transition:background 0.12s;}
-.modal-x:hover{background:var(--surface-3);}
-.modal-body{padding:20px 24px;}
+.modal-hdr{padding:28px 32px 16px;display:flex;justify-content:space-between;align-items:flex-start;position:sticky;top:0;background:var(--surface);z-index:1;}
+.modal-title{font-family:'Montserrat',sans-serif;font-size:20px;font-weight: 400;}
+.modal-sub{font-size:12px;color:var(--text-3);margin-top:6px;}
+.modal-x{background:var(--surface-2);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;color:var(--text-2);display:flex;align-items:center;justify-content:center;transition:background 0.12s;}
+.modal-x:hover{background:var(--surface-3);color:var(--text);}
+.modal-body{padding:16px 32px 24px;}
 .modal-img{width:100%;height:200px;object-fit:cover;border-radius:var(--r-md);margin-bottom:18px;border:1px solid var(--border);}
-.modal-img-ph{width:100%;height:130px;border-radius:var(--r-md);margin-bottom:18px;border:1px solid var(--border);background:var(--surface-3);display:flex;align-items:center;justify-content:center;font-family:'Montserrat',sans-serif;font-size:44px;color:var(--border-strong);}
-.m-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+.modal-img-ph{width:100%;height:130px;border-radius:var(--r-md);margin-bottom:18px;border:1px solid var(--border);background:var(--surface-3);display:flex;align-items:center;justify-content:center;font-family:'Montserrat',sans-serif;font-size: 20px;color:var(--border-strong);}
+.m-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:20px;margin-bottom:24px;background:var(--surface-2);padding:20px;border-radius:12px;border:1px solid var(--border-md);}
 .m-lbl{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:4px;}
-.m-val{font-size:13px;font-weight:500;}
-.section-lbl{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);font-weight:500;margin-bottom:8px;}
+.m-val{font-size:13px;font-weight: 400;}
+.section-lbl{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);font-weight: 400;margin-bottom:8px;}
 .handoff-list{margin-bottom:18px;}
 .h-row{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text-2);padding:7px 0;border-bottom:1px solid var(--border);}
 .h-row:last-child{border-bottom:none;}
-.h-from,.h-to{font-weight:600;color:var(--text);}
+.h-from,.h-to{font-weight: 400;color:var(--text);}
 .h-arr{color:var(--text-3);}
 .h-time{margin-left:auto;font-family:'DM Mono',monospace;font-size:10px;color:var(--text-3);}
-.note-area{width:100%;font-family:'Raleway',sans-serif;font-size:13px;border:1px solid var(--border-md);border-radius:var(--r-sm);padding:10px 12px;background:var(--surface-2);color:var(--text);resize:vertical;min-height:72px;outline:none;transition:border-color 0.15s;}
+.note-area{width:100%;font-family:'Raleway',sans-serif;font-size:13px;border:1px solid var(--border-md);border-radius:var(--r-sm);padding:12px 14px;background:var(--surface-2);color:var(--text);resize:vertical;min-height:80px;outline:none;transition:border-color 0.15s;box-shadow:inset 0 1px 3px rgba(0,0,0,0.02);}
 .note-area:focus{border-color:var(--gold);background:var(--surface);}
-.modal-actions{padding:14px 24px 20px;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
-.btn{font-family:'Raleway',sans-serif;font-size:13px;font-weight:500;padding:8px 16px;border-radius:var(--r-sm);border:1px solid var(--border-md);background:var(--surface);color:var(--text);cursor:pointer;transition:all 0.12s;white-space:nowrap;}
+.modal-actions{padding:16px 32px 28px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+.btn{font-family:'Raleway',sans-serif;font-size:13px;font-weight: 400;padding:8px 16px;border-radius:var(--r-sm);border:1px solid var(--border-md);background:var(--surface);color:var(--text);cursor:pointer;transition:all 0.12s;white-space:nowrap;}
 .btn:hover:not(.btn-primary){background:var(--surface-2);}
 .btn-primary{background:var(--text);color:#fff;border-color:var(--text);}
 .btn-primary:hover{opacity:0.85;background:var(--text);color:#fff;}
@@ -217,19 +217,19 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--blue);cursor:poin
 .bm-list{border:1px solid var(--border);border-radius:var(--r-sm);max-height:200px;overflow-y:auto;margin-bottom:14px;}
 .bm-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px;}
 .bm-row:last-child{border-bottom:none;}
-.bm-id{font-weight:600;min-width:70px;font-family:'Montserrat',sans-serif;}
+.bm-id{font-weight: 400;min-width:70px;font-family:'Montserrat',sans-serif;}
 .bm-item{color:var(--text-2);flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
 
 /* BOTTOM INFO */
 .info-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-top:20px;}
 .info-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;}
-.info-title{font-family:'Montserrat',sans-serif;font-size:17px;font-weight:600;margin-bottom:14px;}
+.info-title{font-family:'Montserrat',sans-serif;font-size:17px;font-weight: 400;margin-bottom:14px;}
 .flow-row{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:12px;}
-.flow-node{font-size:10px;font-weight:500;padding:4px 10px;border-radius:20px;background:var(--surface-2);border:1px solid var(--border-md);color:var(--text-2);}
+.flow-node{font-size:10px;font-weight: 400;padding:4px 10px;border-radius:20px;background:var(--surface-2);border:1px solid var(--border-md);color:var(--text-2);}
 .flow-arr{font-size:12px;color:var(--text-3);}
 .step{display:flex;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:7px;background:var(--surface-2);}
 .step:last-child{margin-bottom:0;}
-.step-n{font-family:'Montserrat',sans-serif;font-size:18px;font-weight:600;color:var(--gold);min-width:18px;line-height:1.2;}
+.step-n{font-family:'Montserrat',sans-serif;font-size:18px;font-weight: 400;color:var(--gold);min-width:18px;line-height:1.2;}
 .step-t{font-size:12px;color:var(--text-2);line-height:1.5;}
 .pri-row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
 .pri-code{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-3);}
@@ -863,7 +863,7 @@ export function InnerOrdersPage({ init, initInv, initLastSync, isEmpty }){
           </div>
         )}
 
-        <div style={{marginTop:12,fontSize:12,fontWeight:500,color:"var(--text-2)",display:"flex",alignItems:"center",gap:8}}>
+        <div style={{marginTop:12,fontSize:12,fontWeight: 400,color:"var(--text-2)",display:"flex",alignItems:"center",gap:8}}>
           <span className="title-pip"></span>
           {activeSKU ? `Orders for ${activeSKU}` : "Production orders"}
         </div>
@@ -883,7 +883,7 @@ export function InnerOrdersPage({ init, initInv, initLastSync, isEmpty }){
               <div className="modal-title" style={{display:"flex", alignItems:"center", gap:"10px"}}>
                 {o.id} — {o.item}
                 {typeof o.shopifyId === 'string' && (
-                  <a href={`https://admin.shopify.com/orders/${o.shopifyId.split("/").pop()}`} target="_blank" rel="noreferrer" style={{fontSize:11, fontWeight:500, color:"#fff", background:"#181818", padding:"4px 8px", borderRadius:4, textDecoration:"none"}}>
+                  <a href={`https://admin.shopify.com/orders/${o.shopifyId.split("/").pop()}`} target="_blank" rel="noreferrer" style={{fontSize:11, fontWeight: 400, color:"#fff", background:"#181818", padding:"4px 8px", borderRadius:4, textDecoration:"none"}}>
                     View in Shopify ↗
                   </a>
                 )}
@@ -900,14 +900,14 @@ export function InnerOrdersPage({ init, initInv, initLastSync, isEmpty }){
             <div className="m-grid">
               <div><div className="m-lbl">SKU</div><div className="m-val" style={{fontFamily:"'DM Mono',monospace",fontSize:11}}>{o.sku}</div></div>
               <div><div className="m-lbl">Quantity</div><div className="m-val">{o.qty}</div></div>
-              <div><div className="m-lbl">Stock (Warehouse)</div><div className="m-val"><span className={invMap[o.sku]!==undefined && invMap[o.sku]>0 ? "age-ok" : "age-warn"} style={{fontWeight:600}}>{invMap[o.sku] !== undefined ? invMap[o.sku] : "—"}</span></div></div>
+              <div><div className="m-lbl">Stock (Warehouse)</div><div className="m-val"><span className={invMap[o.sku]!==undefined && invMap[o.sku]>0 ? "age-ok" : "age-warn"} style={{fontWeight: 400}}>{invMap[o.sku] !== undefined ? invMap[o.sku] : "—"}</span></div></div>
               <div><div className="m-lbl">Payment</div><div className="m-val"><span className={`badge ${PAY_BADGE[o.paymentStatus]||"b-slate"}`}>{o.paymentStatus}</span></div></div>
               <div><div className="m-lbl">Workflow Status</div><div className="m-val"><span className={`badge ${STATUS_BADGE[o.status]||"b-slate"}`}>{o.status}</span></div></div>
               <div><div className="m-lbl">Priority</div><div className="m-val"><span className={`badge ${PRI_BADGE[o.priority]||"b-slate"}`}>{o.priority}</span></div></div>
               <div><div className="m-lbl">Owner</div><div className="m-val" style={{fontSize:12}}>{o.owner}</div></div>
               {o.shopifyNote&&(
                 <div style={{gridColumn:"1/-1",background:"var(--surface-2)",padding:10,borderRadius:8,border:"1px dashed var(--border-strong)"}}>
-                  <div className="m-lbl" style={{color:"var(--text-2)",fontWeight:600}}>Shopify Note</div>
+                  <div className="m-lbl" style={{color:"var(--text-2)",fontWeight: 400}}>Shopify Note</div>
                   <div className="m-val" style={{fontSize:13,fontWeight:400,fontStyle:"italic"}}>"{o.shopifyNote}"</div>
                 </div>
               )}
@@ -922,10 +922,10 @@ export function InnerOrdersPage({ init, initInv, initLastSync, isEmpty }){
                       ? <img src={li.image.url} style={{width:32,height:32,borderRadius:6,objectFit:"cover",border:"1px solid var(--border)"}} alt=""/>
                       : <div style={{width:32,height:32,borderRadius:6,background:"var(--surface-3)",border:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"var(--text-3)"}}>◈</div>}
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:13,fontWeight:500,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{li.title}</div>
+                      <div style={{fontSize:13,fontWeight: 400,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{li.title}</div>
                       <div style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"var(--text-3)"}}>{li.sku||"—"}</div>
                     </div>
-                    <div style={{fontSize:12,fontWeight:600,color:"var(--text-2)"}}>×{li.quantity}</div>
+                    <div style={{fontSize:12,fontWeight: 400,color:"var(--text-2)"}}>×{li.quantity}</div>
                   </div>
                 ))}
               </div>
@@ -1120,39 +1120,39 @@ export function InnerOrdersPage({ init, initInv, initLastSync, isEmpty }){
             
             {/* Trending Products */}
             <div className="stat-card" style={{padding:0, display:"flex", flexDirection:"column", height:"400px"}}>
-              <div style={{padding:"16px", borderBottom:"1px solid var(--border)", fontWeight:600, color:"var(--text)", fontSize:13, letterSpacing:1}}>🔥 TRENDING PRODUCTS</div>
+              <div style={{padding:"16px", borderBottom:"1px solid var(--border)", fontWeight: 400, color:"var(--text)", fontSize:13, letterSpacing:1}}>🔥 TRENDING PRODUCTS</div>
               <div style={{flex:1, overflowY:"auto", padding:"16px", display:"flex", flexDirection:"column", gap:"12px"}}>
                 {analytics.trending.length===0 ? <div style={{fontSize:12, color:"var(--text-3)"}}>No active orders</div> : analytics.trending.map(t=>(
                   <div key={t.sku} style={{display:"flex", alignItems:"center", gap:12, paddingBottom:12, borderBottom:"1px solid var(--border-light)"}}>
                     {t.imageUrl ? <img src={t.imageUrl} style={{width:40, height:40, borderRadius:8, objectFit:"cover", border:"1px solid var(--border-md)"}}/> : <div style={{width:40, height:40, borderRadius:8, background:"var(--surface-3)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10}}>◈</div>}
                     <div style={{flex:1, minWidth:0}}>
-                      <div style={{fontWeight:500, color:"var(--text)", fontSize:13, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}} title={t.name}>{t.name}</div>
+                      <div style={{fontWeight: 400, color:"var(--text)", fontSize:13, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}} title={t.name}>{t.name}</div>
                       <div style={{fontFamily:"'DM Mono',monospace", fontSize:10, color:"var(--text-3)"}}>{t.sku}</div>
                     </div>
-                    <div style={{fontWeight:600, color:"var(--text)"}}>{t.qty} ord</div>
+                    <div style={{fontWeight: 400, color:"var(--text)"}}>{t.qty} ord</div>
                   </div>
                 ))}
               </div>
             </div>
 
             <div className="stat-card" style={{padding:16, flexDirection:"column", alignItems:"flex-start", gap:10, "--accent-line":"#B8782A"}}>
-              <div style={{fontWeight:600, color:"var(--text)", fontSize:13, letterSpacing:1}}>⚠️ LOW & OUT OF STOCK</div>
+              <div style={{fontWeight: 400, color:"var(--text)", fontSize:13, letterSpacing:1}}>⚠️ LOW & OUT OF STOCK</div>
               <div style={{width:"100%"}}>
                 {analytics.lowStock.length===0 ? <div style={{fontSize:12, color:"var(--text-3)"}}>Stock levels look healthy</div> : analytics.lowStock.map(t=>(
                   <div key={t.sku} style={{display:"flex", justifyContent:"space-between", padding:"6px 0", borderBottom:"1px solid var(--border-light)", fontSize:12}}>
                     <div style={{color:"var(--text-2)", maxWidth:"60%", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}} title={t.sku}>{t.sku}</div>
-                    <div style={{fontWeight:600, color:t.invQty<=0?"#9A2A3A":"#B8782A"}}>{t.invQty} in stock</div>
+                    <div style={{fontWeight: 400, color:t.invQty<=0?"#9A2A3A":"#B8782A"}}>{t.invQty} in stock</div>
                   </div>
                 ))}
               </div>
             </div>
 
             <div className="stat-card" style={{padding:16, flexDirection:"column", alignItems:"flex-start", gap:10, "--accent-line":"#9A2A3A"}}>
-              <div style={{fontWeight:600, color:"var(--text)", fontSize:13, letterSpacing:1}}>🚨 AT-RISK ORDERS (0 STOCK)</div>
+              <div style={{fontWeight: 400, color:"var(--text)", fontSize:13, letterSpacing:1}}>🚨 AT-RISK ORDERS (0 STOCK)</div>
               <div style={{width:"100%"}}>
                 {analytics.outOfStockOrders.length===0 ? <div style={{fontSize:12, color:"var(--text-3)"}}>No orders blocked by stock</div> : analytics.outOfStockOrders.map(o=>(
                   <div key={o.id} style={{display:"flex", justifyContent:"space-between", padding:"6px 0", borderBottom:"1px solid var(--border-light)", fontSize:12, cursor:"pointer"}} onClick={()=>setSelected(o)}>
-                    <div style={{color:"var(--gold-text)", fontWeight:600}}>{o.id}</div>
+                    <div style={{color:"var(--gold-text)", fontWeight: 400}}>{o.id}</div>
                     <div style={{color:"var(--text-3)"}}>{o.sku}</div>
                   </div>
                 ))}
@@ -1289,8 +1289,8 @@ export function InnerOrdersPage({ init, initInv, initLastSync, isEmpty }){
                   <td style={{fontSize:13}}>{o.customer}</td>
                   <td><div className="item-txt" title={o.item}>{o.item}</div></td>
                   <td><span className="sku-txt">{o.sku}</span></td>
-                  <td style={{fontWeight:600,textAlign:"center"}}>{o.qty}</td>
-                  <td style={{textAlign:"center"}}><span className={invMap[o.sku]!==undefined && invMap[o.sku]>0 ? "age-ok" : "age-warn"} style={{fontWeight:600}}>{invMap[o.sku] !== undefined ? invMap[o.sku] : "—"}</span></td>
+                  <td style={{fontWeight: 400,textAlign:"center"}}>{o.qty}</td>
+                  <td style={{textAlign:"center"}}><span className={invMap[o.sku]!==undefined && invMap[o.sku]>0 ? "age-ok" : "age-warn"} style={{fontWeight: 400}}>{invMap[o.sku] !== undefined ? invMap[o.sku] : "—"}</span></td>
                   <td><span className={`badge ${PAY_BADGE[o.paymentStatus]||"b-slate"}`}>{o.paymentStatus}</span></td>
                   <td><span className={`badge ${PRI_BADGE[o.priority]||"b-slate"}`}>{o.priority}</span></td>
                   <td><span className={`badge ${STATUS_BADGE[o.status]||"b-slate"}`}>{o.status}</span></td>

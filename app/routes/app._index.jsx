@@ -32,15 +32,15 @@ html,body{font-family:'Raleway',sans-serif;background:var(--bg);color:var(--text
 .pg-header{background:var(--text);padding:0 28px;display:flex;align-items:center;gap:20px;height:58px;position:sticky;top:0;z-index:60;}
 .brand{display:flex;align-items:center;gap:12px;}
 .brand-mark{width:32px;height:32px;border:1.5px solid rgba(255,255,255,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;}
-.brand-name{font-family:'Montserrat',sans-serif;font-size:19px;font-weight:600;color:#fff;letter-spacing:0.02em;}
+.brand-name{font-family:'Montserrat',sans-serif;font-size:19px;font-weight: 400;color:#fff;letter-spacing:0.02em;}
 .brand-tag{font-size:10px;color:rgba(255,255,255,0.38);font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;margin-left:2px;}
 .hd-mid{flex:1;display:flex;align-items:center;justify-content:center;gap:2px;}
-.nav-tab{font-family:'Raleway',sans-serif;font-size:12px;font-weight:500;padding:5px 16px;border-radius:6px;border:none;background:transparent;color:rgba(255,255,255,0.45);cursor:pointer;transition:all 0.15s;}
+.nav-tab{font-family:'Raleway',sans-serif;font-size:12px;font-weight: 400;padding:5px 16px;border-radius:6px;border:none;background:transparent;color:rgba(255,255,255,0.45);cursor:pointer;transition:all 0.15s;}
 .nav-tab:hover{color:rgba(255,255,255,0.75);}
 .nav-tab.active{background:rgba(255,255,255,0.12);color:#fff;}
 .hd-right{display:flex;align-items:center;gap:10px;}
 .sync-badge{font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.03em;}
-.hdr-btn{font-family:'Raleway',sans-serif;font-size:11px;font-weight:500;padding:5px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);cursor:pointer;transition:all 0.15s;text-decoration:none;display:inline-flex;align-items:center;gap:5px;}
+.hdr-btn{font-family:'Raleway',sans-serif;font-size:11px;font-weight: 400;padding:5px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);cursor:pointer;transition:all 0.15s;text-decoration:none;display:inline-flex;align-items:center;gap:5px;}
 .hdr-btn:hover{background:rgba(255,255,255,0.14);color:#fff;}
 
 /* LAYOUT */
@@ -52,7 +52,7 @@ html,body{font-family:'Raleway',sans-serif;background:var(--bg);color:var(--text
 .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent-line,transparent);}
 .stat-card:hover{box-shadow:var(--shadow-sm);transform:translateY(-1px);}
 .stat-label{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;}
-.stat-num{font-size:28px;font-weight:300;color:var(--text);line-height:1;font-family:'Montserrat',sans-serif;}
+.stat-num{font-size: 20px;font-weight:300;color:var(--text);line-height:1;font-family:'Montserrat',sans-serif;}
 .stat-num.danger{color:var(--rose);}
 .stat-num.warn{color:var(--gold);}
 
@@ -62,7 +62,7 @@ html,body{font-family:'Raleway',sans-serif;background:var(--bg);color:var(--text
 /* SECTION CARD */
 .sec-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow-xs);}
 .sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--border);background:var(--surface-2);}
-.sec-title{font-size:12px;font-weight:500;color:var(--text);display:flex;align-items:center;gap:8px;}
+.sec-title{font-size:12px;font-weight: 400;color:var(--text);display:flex;align-items:center;gap:8px;}
 .title-pip{width:5px;height:5px;border-radius:50%;background:var(--gold);flex-shrink:0;}
 
 /* TOP ROW (dashboard) */
@@ -71,14 +71,14 @@ html,body{font-family:'Raleway',sans-serif;background:var(--bg);color:var(--text
 
 /* ALERTS PANEL */
 .alerts-panel{width:220px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;}
-.alerts-panel-title{font-size:11px;font-weight:500;color:var(--text-2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;}
+.alerts-panel-title{font-size:11px;font-weight: 400;color:var(--text-2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;}
 .alert-item{background:var(--rose-bg);border:1px solid rgba(154,42,58,0.15);border-radius:var(--r-md);padding:10px 12px;margin-bottom:7px;cursor:pointer;transition:opacity 0.12s;display:flex;align-items:center;gap:10px;}
 .alert-item:hover{opacity:0.82;}
 .alert-item:last-child{margin-bottom:0;}
 .alert-thumb{width:32px;height:32px;border-radius:6px;object-fit:cover;flex-shrink:0;border:1px solid var(--border);}
 .alert-thumb-ph{width:32px;height:32px;border-radius:6px;background:rgba(154,42,58,0.12);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Montserrat',sans-serif;font-size:14px;color:var(--rose-text);}
 .alert-info{flex:1;min-width:0;}
-.alert-id{font-size:12px;font-weight:500;color:var(--rose-text);}
+.alert-id{font-size:12px;font-weight: 400;color:var(--rose-text);}
 .alert-sub{font-size:10px;color:var(--rose);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .alerts-ok{background:var(--teal-bg);border:1px solid rgba(42,122,106,0.15);border-radius:var(--r-md);padding:10px 12px;font-size:11px;color:var(--teal-text);display:flex;align-items:center;gap:6px;}
 
@@ -95,7 +95,7 @@ html,body{font-family:'Raleway',sans-serif;background:var(--bg);color:var(--text
 /* TABLE */
 .tbl-wrap{overflow-x:auto;}
 table{width:100%;border-collapse:collapse;min-width:600px;}
-th{text-align:left;padding:9px 14px;font-size:10px;font-weight:500;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;background:var(--surface-2);border-bottom:1px solid var(--border-md);white-space:nowrap;}
+th{text-align:left;padding:9px 14px;font-size:10px;font-weight: 400;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;background:var(--surface-2);border-bottom:1px solid var(--border-md);white-space:nowrap;}
 td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;font-size:13px;}
 tr:last-child td{border-bottom:none;}
 tbody tr{cursor:pointer;transition:background 0.08s;}
@@ -108,7 +108,7 @@ tbody tr.no-click{cursor:default;}
 .prod-cell{display:flex;align-items:center;gap:10px;}
 .prod-img{width:38px;height:38px;border-radius:7px;object-fit:cover;border:1px solid var(--border);background:var(--surface-3);display:block;flex-shrink:0;}
 .prod-img-ph{width:38px;height:38px;border-radius:7px;background:var(--surface-3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Montserrat',sans-serif;font-size:16px;color:var(--text-3);flex-shrink:0;}
-.prod-name{font-size:13px;font-weight:500;color:var(--text);line-height:1.3;}
+.prod-name{font-size:13px;font-weight: 400;color:var(--text);line-height:1.3;}
 .prod-variant{font-size:11px;color:var(--text-3);margin-top:1px;}
 
 /* INPUTS */
@@ -116,11 +116,11 @@ tbody tr.no-click{cursor:default;}
 .qty-in:focus{border-color:var(--gold);}
 .txt-in{width:100px;padding:5px 8px;border:1px solid var(--border-md);border-radius:5px;font-size:12px;outline:none;transition:border-color 0.15s;background:var(--surface);font-family:'Raleway',sans-serif;}
 .txt-in:focus{border-color:var(--gold);}
-.save-btn{padding:4px 10px;font-size:12px;font-weight:500;background:var(--text);color:#fff;border:none;border-radius:5px;cursor:pointer;transition:opacity 0.12s;font-family:'Raleway',sans-serif;}
+.save-btn{padding:4px 10px;font-size:12px;font-weight: 400;background:var(--text);color:#fff;border:none;border-radius:5px;cursor:pointer;transition:opacity 0.12s;font-family:'Raleway',sans-serif;}
 .save-btn:hover{opacity:0.8;}
 
 /* BADGES */
-.badge{display:inline-block;font-size:10px;font-weight:500;padding:3px 8px;border-radius:20px;white-space:nowrap;}
+.badge{display:inline-block;font-size:10px;font-weight: 400;padding:3px 8px;border-radius:20px;white-space:nowrap;}
 .b-success{background:var(--teal-bg);color:var(--teal-text);}
 .b-warning{background:var(--gold-bg);color:var(--gold-text);}
 .b-danger{background:var(--rose-bg);color:var(--rose-text);}
@@ -130,7 +130,7 @@ tbody tr.no-click{cursor:default;}
 .b-unfulfil{background:var(--rose-bg);color:var(--rose-text);}
 .b-partial{background:var(--gold-bg);color:var(--gold-text);}
 
-.diff-chip{display:inline-flex;align-items:center;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600;}
+.diff-chip{display:inline-flex;align-items:center;padding:3px 8px;border-radius:6px;font-size:11px;font-weight: 400;}
 .d-pos{background:var(--teal-bg);color:var(--teal-text);}
 .d-neg{background:var(--rose-bg);color:var(--rose-text);}
 .d-zero{background:var(--slate-bg);color:var(--slate-text);}
@@ -141,7 +141,7 @@ tbody tr.no-click{cursor:default;}
 .order-hdr{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:background 0.1s;gap:12px;flex-wrap:wrap;}
 .order-hdr:hover{background:var(--surface-3);}
 .order-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-.order-num{font-weight:600;font-size:14px;font-family:'Montserrat',sans-serif;}
+.order-num{font-weight: 400;font-size:14px;font-family:'Montserrat',sans-serif;}
 .order-cust{font-size:12px;color:var(--text-2);}
 .order-date{font-size:11px;color:var(--text-3);font-family:'DM Mono',monospace;}
 .order-right{display:flex;align-items:center;gap:10px;}
@@ -151,7 +151,7 @@ tbody tr.no-click{cursor:default;}
 
 /* EMPTY */
 .empty-state{text-align:center;padding:52px 24px;color:var(--text-3);}
-.empty-glyph{font-family:'Montserrat',sans-serif;font-size:42px;color:var(--border-strong);margin-bottom:10px;}
+.empty-glyph{font-family:'Montserrat',sans-serif;font-size: 20px;color:var(--border-strong);margin-bottom:10px;}
 
 /* TOAST */
 .toast-wrap{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:999;pointer-events:none;}
@@ -163,9 +163,9 @@ tbody tr.no-click{cursor:default;}
 /* SAVE BAR */
 .save-bar{display:flex;align-items:center;gap:10px;background:var(--text);color:#fff;border-radius:var(--r-md);padding:10px 16px;margin-bottom:12px;animation:slideDown 0.15s ease;}
 @keyframes slideDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
-.save-bar-label{font-size:13px;font-weight:500;}
+.save-bar-label{font-size:13px;font-weight: 400;}
 .save-bar-label span{color:rgba(255,255,255,0.4);font-size:12px;margin-left:4px;}
-.sbtn{font-family:'Raleway',sans-serif;font-size:12px;font-weight:500;padding:6px 16px;border-radius:var(--r-sm);border:none;background:#fff;color:var(--text);cursor:pointer;transition:opacity 0.12s;}
+.sbtn{font-family:'Raleway',sans-serif;font-size:12px;font-weight: 400;padding:6px 16px;border-radius:var(--r-sm);border:none;background:#fff;color:var(--text);cursor:pointer;transition:opacity 0.12s;}
 .sbtn:hover{opacity:0.85;}
 .sbtn-ghost{background:rgba(255,255,255,0.12);color:#fff;}
 .sbtn-ghost:hover{background:rgba(255,255,255,0.2);}
@@ -583,7 +583,7 @@ export default function IndexPage() {
                       <tr key={i} onClick={() => navigate("orders")}>
                         <td><strong>{o.name}</strong><div style={{ fontSize: 10, color: "var(--text-3)", fontFamily: "'DM Mono',monospace" }}>{fmt(o.createdAt)}</div></td>
                         <td style={{ fontSize: 12, color: "var(--text-2)" }}>{o.customer || "Guest"}</td>
-                        <td style={{ fontWeight: 600 }}>{o.lineItems.length}</td>
+                        <td style={{ fontWeight: 400 }}>{o.lineItems.length}</td>
                         <td><span className="price-m">{cur(o.totalPrice, o.currencyCode)}</span></td>
                         <td><FulfillBadge s={o.fulfillmentStatus} /></td>
                       </tr>
@@ -649,7 +649,7 @@ export default function IndexPage() {
                   if (multi) {
                     rows.push(
                       <tr key={`hdr-${prod.id}`} className="no-click" style={{ background: "var(--surface-2)" }}>
-                        <td colSpan={9} style={{ padding: "7px 14px", fontSize: 11, fontWeight: 600, color: "var(--text-2)" }}>
+                        <td colSpan={9} style={{ padding: "7px 14px", fontSize: 11, fontWeight: 400, color: "var(--text-2)" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <Thumb src={prod.imageUrl} alt={prod.title} size={22} />
                             {prod.title} <span style={{ fontWeight: 400, color: "var(--text-3)" }}>({prod.variants.length} variants)</span>
@@ -759,7 +759,7 @@ export default function IndexPage() {
                   <td style={{ padding: "8px 6px 8px 16px", width: 46 }}><Thumb src={li.imageUrl} alt={li.title} size={34} /></td>
                   <td><div className="prod-name" style={{ fontSize: 12 }}>{li.title}</div></td>
                   <td><span className="sku-m">{li.sku || "—"}</span></td>
-                  <td style={{ fontWeight: 600 }}>{li.quantity}</td>
+                  <td style={{ fontWeight: 400 }}>{li.quantity}</td>
                   <td>{sq !== null ? <QtyBadge q={sq} /> : "—"}</td>
                   <td>{wq !== undefined && wq !== null ? <span className="badge b-info">{wq}</span> : <span style={{ fontSize: 11, color: "var(--text-3)" }}>Not entered</span>}</td>
                   <td>{wh?.binLocation ? <span className="sku-m">{wh.binLocation}</span> : "—"}</td>
@@ -781,7 +781,7 @@ export default function IndexPage() {
                     </div>
                   </div>
                   <div className="order-right">
-                    <span className="price-m" style={{ fontWeight: 600 }}>{cur(o.totalPrice, o.currencyCode)}</span>
+                    <span className="price-m" style={{ fontWeight: 400 }}>{cur(o.totalPrice, o.currencyCode)}</span>
                     <span className="badge b-info">{o.lineItems.length} item{o.lineItems.length !== 1 ? "s" : ""}</span>
                     <span className={`caret${isOpen ? " open" : ""}`}>▼</span>
                   </div>
