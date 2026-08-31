@@ -608,6 +608,12 @@ export function InnerOrdersWorkflow({ init, initInv, user, isEmpty }) {
     delayed: delayed.length,
   };
 
+  const invMap = useMemo(() => {
+    const map = {};
+    inventory.forEach(i => { if (i.sku) map[i.sku] = i.quantity; });
+    return map;
+  }, [inventory]);
+
   // ── SKU Board data ──────────────────────────────────────────────────────
   const skuGroups = useMemo(() => {
     const map={};
@@ -787,6 +793,7 @@ export function InnerOrdersWorkflow({ init, initInv, user, isEmpty }) {
             <div className="m-grid">
               <div><div className="m-lbl">SKU</div><div className="m-val" style={{fontFamily:"'DM Mono',monospace",fontSize:11}}>{o.sku}</div></div>
               <div><div className="m-lbl">Quantity</div><div className="m-val">{o.qty}</div></div>
+              <div><div className="m-lbl">Stock (Warehouse)</div><div className="m-val"><span className={invMap[o.sku]!==undefined && invMap[o.sku]>0 ? "age-ok" : "age-warn"} style={{fontWeight:600}}>{invMap[o.sku] !== undefined ? invMap[o.sku] : "—"}</span></div></div>
               <div><div className="m-lbl">Payment</div><div className="m-val"><span className={`badge ${PAY_BADGE[o.paymentStatus]||"b-slate"}`}>{o.paymentStatus}</span></div></div>
               <div><div className="m-lbl">Workflow Status</div><div className="m-val"><span className={`badge ${STATUS_BADGE[o.status]||"b-slate"}`}>{o.status}</span></div></div>
               <div><div className="m-lbl">Priority</div><div className="m-val"><span className={`badge ${PRI_BADGE[o.priority]||"b-slate"}`}>{o.priority}</span></div></div>
@@ -1196,6 +1203,7 @@ export function InnerOrdersWorkflow({ init, initInv, user, isEmpty }) {
                 <th>Item</th>
                 <th>SKU</th>
                 <th>Qty</th>
+                <th>Stock</th>
                 <th>Payment</th>
                 <th>Priority</th>
                 <th>Status</th>
@@ -1240,6 +1248,7 @@ export function InnerOrdersWorkflow({ init, initInv, user, isEmpty }) {
                   <td><div className="item-txt" title={o.item}>{o.item}</div></td>
                   <td><span className="sku-txt">{o.sku}</span></td>
                   <td style={{fontWeight:600,textAlign:"center"}}>{o.qty}</td>
+                  <td style={{textAlign:"center"}}><span className={invMap[o.sku]!==undefined && invMap[o.sku]>0 ? "age-ok" : "age-warn"} style={{fontWeight:600}}>{invMap[o.sku] !== undefined ? invMap[o.sku] : "—"}</span></td>
                   <td><span className={`badge ${PAY_BADGE[o.paymentStatus]||"b-slate"}`}>{o.paymentStatus}</span></td>
                   <td><span className={`badge ${PRI_BADGE[o.priority]||"b-slate"}`}>{o.priority}</span></td>
                   <td><span className={`badge ${STATUS_BADGE[o.status]||"b-slate"}`}>{o.status}</span></td>
