@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, Suspense } from "react";
 import { useLoaderData, useSubmit, Link, useLocation, useActionData, useRevalidator, Await } from "react-router";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { getShopCredentials, ADMIN_API_VERSION } from "../shopify-admin.server";
 
 // ── CSS ───────────────────────────────────────────────────────────────────────
 const CSS = `
@@ -489,7 +490,26 @@ export const action = async ({ request }) => {
   // Only "sync" needs Shopify admin API — calling authenticate.admin for every
   // action caused Shopify's session-token flow to throw a 200 Response on screen.
   if(type==="sync"){
-    const { admin } = await authenticate.admin(request);
+    let admin = null;
+    try { ({ admin } = await authenticate.admin(request)); }
+    catch (e) { if (!(e instanceof Response)) throw e; }
+
+    if (!admin) {
+      // Expired/missing Shopify session token (this is what showed as "200").
+      // Sync with the stored offline token instead and return no order data;
+      // the page reloads its own orders afterwards.
+      const creds = await getShopCredentials();
+      if (!creds) return { ok:false, synced:0, ordersError:"Session expired. Reload the app from Shopify admin and try again." };
+      admin = {
+        graphql: (query, { variables } = {}) => fetch(`https://${creds.shop}/admin/api/${ADMIN_API_VERSION}/graphql.json`, {
+          method: "POST",
+          headers: { "Content-Type":"application/json", "X-Shopify-Access-Token": creds.accessToken },
+          body: JSON.stringify({ query, variables }),
+        }),
+      };
+      const r = await fetchAndCacheFromShopify(admin);
+      return { ok:true, synced:r.count, ordersError:r.ordersError, lastSync:new Date().toISOString(), refresh:true };
+    }
     const result = await fetchAndCacheFromShopify(admin);
     // Refresh orders from cache and return
     const [cached,states]=await Promise.all([
@@ -586,6 +606,7 @@ export function InnerOrdersPage({ init, initInv, initLastSync, isEmpty }){
   useEffect(()=>{
     if(!actionData) return;
     if(actionData.orders) setOrders(actionData.orders);
+    if(actionData.refresh) revalidate();
     if(actionData.lastSync) setLastSync(actionData.lastSync);
     if(actionData.synced!=null){
       setSyncing(false);
