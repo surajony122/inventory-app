@@ -249,6 +249,7 @@ export default function WorkflowInventory() {
   const isSaving = navigation.state !== "idle";
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const [tabIndex, setTabIndex] = useState(0);
   const [qInput, setQInput] = useState(q || "");
 
   const EXPORT_COLUMNS = [

@@ -1091,7 +1091,7 @@ export function InnerOrdersWorkflow({ init, initInv, user, isEmpty }) {
         <div style={{marginBottom:16, display:"flex", justifyContent:"flex-end", gap:"10px"}}>
           <button className="dl-btn" onClick={() => {
             setToast({msg:"Refreshing...", type:"info"});
-            revalidate();
+            revalidator.revalidate();
           }} style={{background:"var(--blue-bg)", color:"var(--blue-text)", border:"1px solid var(--blue)", cursor:"pointer"}}>
             ↻ Refresh Data
           </button>
