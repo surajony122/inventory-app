@@ -4,6 +4,7 @@ import { findWorkflowUser } from "../workflow.users.server";
 import { redirect, useLoaderData, useSubmit, useNavigation, Link } from "react-router";
 import { useState, useMemo, useEffect } from "react";
 import { loadEnv } from "../env.server";
+import { getShopCredentials, ADMIN_API_VERSION } from "../shopify-admin.server";
 
 // ── CSS Style ─────────────────────────────────────────────────────────────────
 const CSS = `
@@ -114,22 +115,11 @@ export const loader = async ({ request }) => {
   }
 
   // Get stored Shopify credentials (offline token)
-  const fallbackToken = "shpat" + "_" + "e2589ac18bcd" + "56deab557111" + "a7c432e3";
-  let accessToken = process.env.SHOPIFY_ACCESS_TOKEN || fallbackToken;
-  let shop = process.env.SHOPIFY_STORE_URL || "theunniyarcha.myshopify.com";
-
-  if (!accessToken) {
-    const session = await prisma.session.findFirst({
-      where:   { isOnline: false },
-      orderBy: { expires: "desc" },
-    });
-    accessToken = session?.accessToken;
-    shop = session?.shop;
-  }
-
-  if (!accessToken || !shop) {
+  const creds = await getShopCredentials();
+  if (!creds) {
     return { error: "Shopify offline access token or shop domain not found. Open the app in Shopify Admin once to register the offline session.", user };
   }
+  const { accessToken, shop } = creds;
 
   try {
     const url = new URL(request.url);
@@ -146,7 +136,7 @@ export const loader = async ({ request }) => {
       after = cursor;
     }
 
-    const shopifyUrl = `https://${shop}/admin/api/2024-10/graphql.json`;
+    const shopifyUrl = `https://${shop}/admin/api/${ADMIN_API_VERSION}/graphql.json`;
     const resp = await fetch(shopifyUrl, {
       method: "POST",
       headers: {

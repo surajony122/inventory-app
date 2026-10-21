@@ -1,4 +1,6 @@
+import { timingSafeEqual } from "crypto";
 import prisma from "../db.server";
+import { getShopCredentials, ADMIN_API_VERSION } from "../shopify-admin.server";
 
 const PAY_MAP = {
   paid:           "Paid",
@@ -45,7 +47,7 @@ function mapOrder(order) {
 }
 
 // Fetches ALL orders ever using Shopify REST cursor pagination
-async function fetchAllOrders(shop, accessToken) {
+async function fetchAllOrders(shop, accessToken, days) {
   let pageInfo = null;
   let isFirst  = true;
   let total    = 0;
@@ -56,15 +58,17 @@ async function fetchAllOrders(shop, accessToken) {
     if (isFirst) {
       params.set("status", "any");
       params.set("order", "updated_at desc");
-      const lastMonth = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-      params.set("updated_at_min", lastMonth);
+      if (days) {
+        const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+        params.set("updated_at_min", since);
+      }
       params.set("fields", "id,name,created_at,financial_status,customer,line_items,tags,note");
     } else {
       // When using page_info, no other filters allowed
       params.set("page_info", pageInfo);
     }
 
-    const url = `https://${shop}/admin/api/2024-10/orders.json?${params}`;
+    const url = `https://${shop}/admin/api/${ADMIN_API_VERSION}/orders.json?${params}`;
     const res = await fetch(url, {
       headers: { "X-Shopify-Access-Token": accessToken },
     });
@@ -112,42 +116,36 @@ async function fetchAllOrders(shop, accessToken) {
 }
 
 // ── action ────────────────────────────────────────────────────────────────────
+function validSecret(given) {
+  const expected = process.env.CRON_SECRET;
+  if (!expected || !given) return false;
+  const a = Buffer.from(given), b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
 export const action = async ({ request }) => {
-  // Validate cron secret
-  const secret = request.headers.get("x-cron-secret");
-  const expected = "unnicharya_sync_secret_123";
-  
-  if (!secret || secret !== expected) {
+  if (!validSecret(request.headers.get("x-cron-secret"))) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Get the stored Shopify session (offline token = permanent access)
-  const fallbackToken = "shpat" + "_" + "e2589ac18bcd" + "56deab557111" + "a7c432e3";
-  let accessToken = process.env.SHOPIFY_ACCESS_TOKEN || fallbackToken;
-  let shop = process.env.SHOPIFY_STORE_URL || "theunniyarcha.myshopify.com";
+  // ?days=N limits to orders updated in the last N days (default 30); ?all=1 syncs every order
+  const url  = new URL(request.url);
+  const days = url.searchParams.get("all") === "1" ? 0 : Number(url.searchParams.get("days")) || 30;
 
-  if (!accessToken) {
-    const session = await prisma.session.findFirst({
-      where:   { isOnline: false },
-      orderBy: { expires: "desc" },
-    });
-    accessToken = session?.accessToken;
-    shop = session?.shop;
-  }
-
-  if (!accessToken || !shop) {
+  const creds = await getShopCredentials();
+  if (!creds) {
     return Response.json(
-      { error: "No Shopify session found and SHOPIFY_ACCESS_TOKEN is not set. Open the app in Shopify admin once to create a session." },
+      { error: "No Shopify session found and SHOPIFY_ACCESS_TOKEN/SHOPIFY_STORE_URL are not set. Open the app in Shopify admin once to create a session." },
       { status: 500 }
     );
   }
 
   try {
     const t0    = Date.now();
-    const count = await fetchAllOrders(shop, accessToken);
+    const count = await fetchAllOrders(creds.shop, creds.accessToken, days);
     const secs  = ((Date.now() - t0) / 1000).toFixed(1);
     console.log(`[cron-sync] ✅ Synced ${count} orders in ${secs}s`);
-    return Response.json({ ok: true, synced: count, elapsed: `${secs}s`, shop: shop });
+    return Response.json({ ok: true, synced: count, elapsed: `${secs}s`, shop: creds.shop });
   } catch (err) {
     console.error("[cron-sync] ❌ Failed:", err.message);
     return Response.json({ ok: false, error: err.message }, { status: 500 });

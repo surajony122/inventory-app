@@ -396,7 +396,9 @@ export const loader = async ({ request }) => {
 // ── ACTION ────────────────────────────────────────────────────────────────────
 export const action = async ({ request }) => {
   const email = await wfCookie.parse(request.headers.get("Cookie"));
-  if (!findWorkflowUser(email)) return redirect("/workflow");
+  const actor = await findWorkflowUser(email);
+  if (!actor) return redirect("/workflow");
+  if (!ROLES.some(r => actor.access.includes(r))) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   const fd = await request.formData();
   const type = fd.get("type");

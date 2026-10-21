@@ -1,7 +1,7 @@
 /* eslint-env node */
 import https from "https";
 
-const secret   = "unnicharya_sync_secret_123";
+const secret   = process.env.CRON_SECRET;
 const hostname = "unnicharya-app.onrender.com";
 
 if (!secret) {
