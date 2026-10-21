@@ -1,7 +1,7 @@
 import prisma from "../db.server";
 import { wfCookie } from "../workflow.cookie.server";
 import { findWorkflowUser } from "../workflow.users.server";
-import { redirect, useLoaderData, useSubmit, useNavigation, Link } from "react-router";
+import { redirect, useLoaderData, useSubmit, useNavigation, useSearchParams, Link } from "react-router";
 import { useState, useMemo, useEffect } from "react";
 import { loadEnv } from "../env.server";
 import { getShopCredentials, ADMIN_API_VERSION } from "../shopify-admin.server";
