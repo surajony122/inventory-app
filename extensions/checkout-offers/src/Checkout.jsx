@@ -34,6 +34,7 @@ function Extension() {
   const [error, setError] = useState('');
   const [loadError, setLoadError] = useState('');
   const [loaded, setLoaded] = useState(false);
+  const [open, setOpen] = useState(true);
 
   useEffect(() => {
     shopify
@@ -91,13 +92,17 @@ function Extension() {
     <s-stack gap="base">
       {shownCoupons.length > 0 && (
         <s-box border="base" borderRadius="large" padding="base">
-          <s-details open>
-            <s-summary>
-              <s-stack direction="inline" gap="small-200" alignItems="center">
-                <s-icon type="discount" />
-                <s-text type="strong">{cfg.title || 'Available Coupons'}</s-text>
+          <s-stack gap="small-200">
+            <s-clickable onClick={() => setOpen(!open)} accessibilityLabel="Show or hide coupons">
+              <s-stack direction="inline" justifyContent="space-between" alignItems="center">
+                <s-stack direction="inline" gap="small-200" alignItems="center">
+                  <s-icon type="discount" />
+                  <s-text type="strong">{cfg.title || 'Available Coupons'}</s-text>
+                </s-stack>
+                <s-icon type={open ? 'chevron-up' : 'chevron-down'} />
               </s-stack>
-            </s-summary>
+            </s-clickable>
+            {open && (
             <s-stack gap="small-200">
               {error && <s-banner tone="critical">{error}</s-banner>}
               {shownCoupons.map((b) => {
@@ -126,20 +131,21 @@ function Extension() {
                         <s-heading>{b.code}</s-heading>
                         <s-text color="subdued">{b.title}</s-text>
                       </s-stack>
-                      <s-button
-                        variant="secondary"
+                      <s-clickable
                         loading={busyCode === b.code}
                         disabled={!canUpdate}
+                        accessibilityLabel={'Apply ' + b.code}
                         onClick={() => change(b.code, 'addDiscountCode')}
                       >
-                        Apply
-                      </s-button>
+                        <s-text type="strong">Apply</s-text>
+                      </s-clickable>
                     </s-stack>
                   </s-box>
                 );
               })}
             </s-stack>
-          </s-details>
+            )}
+          </s-stack>
         </s-box>
       )}
       {notes.map((b) => (
