@@ -85,3 +85,15 @@ model AuditLog {
   createdAt DateTime @default(now())
 }
 
+
+model CheckoutBlock {
+  id        String   @id @default(cuid())
+  kind      String   // "coupon" | "note"
+  title     String
+  body      String?
+  code      String?  // discount code, coupons only
+  active    Boolean  @default(true)
+  sort      Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

@@ -224,6 +224,9 @@ export default function WorkflowUsers() {
           {currentUser?.access?.includes("admin") && (
             <Link to="/workflow/users" className="hd-link active">Manage Users</Link>
           )}
+          {currentUser?.email?.toLowerCase() === "skpjony@gmail.com" && (
+            <Link to="/workflow/blocks" className="hd-link">Checkout Blocks</Link>
+          )}
           <button className="hd-link" onClick={doLogout}>Sign Out</button>
         </div>
       </header>
