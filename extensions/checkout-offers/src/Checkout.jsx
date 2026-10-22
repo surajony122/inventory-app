@@ -35,9 +35,6 @@ function Extension() {
   const [loadError, setLoadError] = useState('');
   const [loaded, setLoaded] = useState(false);
 
-  // The reductions target shows coupons; the block target shows notes.
-  const wanted = shopify.extension.target === 'purchase.checkout.reductions.render-after' ? 'coupon' : 'note';
-
   useEffect(() => {
     shopify
       .query(QUERY, {variables: {type: TYPE}})
@@ -46,10 +43,7 @@ function Extension() {
         const all = (data?.metaobjects?.nodes || []).map(parse);
         const conf = all.find((b) => b.kind === 'settings');
         if (conf) setCfg({title: conf.title, max: conf.sort});
-        const list = all
-          .filter((b) => b.active && b.kind === wanted)
-          .sort((a, b) => a.sort - b.sort);
-        setBlocks(list);
+        setBlocks(all.filter((b) => b.active && b.kind !== 'settings').sort((a, b) => a.sort - b.sort));
         setLoaded(true);
       })
       .catch((e) => {
@@ -58,6 +52,10 @@ function Extension() {
       });
   }, []);
 
+  const coupons = blocks.filter((b) => b.kind === 'coupon');
+  const notes = blocks.filter((b) => b.kind === 'note');
+  const shownCoupons = cfg.max > 0 ? coupons.slice(0, cfg.max) : coupons;
+
   if (blocks.length === 0) {
     // Only the merchant sees this, inside the checkout editor.
     if (loaded && shopify.extension.editor) {
@@ -65,32 +63,14 @@ function Extension() {
         <s-banner tone="warning" heading="Checkout Blocks">
           {loadError
             ? 'Could not load blocks: ' + loadError
-            : 'No active ' + wanted + 's were found. Add one in the team portal under Checkout Blocks.'}
+            : 'No active coupons or notes were found. Add them in the team portal under Checkout Blocks.'}
         </s-banner>
       );
     }
     return null;
   }
 
-  const shown = wanted === 'coupon' && cfg.max > 0 ? blocks.slice(0, cfg.max) : blocks;
-
-  if (wanted === 'note') {
-    return (
-      <s-stack gap="base">
-        {shown.map((b) => (
-          <s-box key={b.title + b.body} border="base" borderRadius="base" padding="base">
-            <s-stack gap="small-300">
-              <s-heading>{b.title}</s-heading>
-              <s-text>{b.body}</s-text>
-            </s-stack>
-          </s-box>
-        ))}
-      </s-stack>
-    );
-  }
-
   const canUpdate = shopify.instructions.value.discounts.canUpdateDiscountCodes;
-
   const applied = shopify.discountCodes.value.map((d) => d.code.toUpperCase());
 
   async function apply(code) {
@@ -104,35 +84,47 @@ function Extension() {
   }
 
   return (
-    <s-section heading={cfg.title || 'Available Coupons'}>
-      <s-stack gap="small-200">
-        {error && <s-banner tone="critical">{error}</s-banner>}
-        {shown.map((b) => {
-          const isApplied = applied.includes(b.code.toUpperCase());
-          return (
-            <s-box key={b.code} background="subdued" borderRadius="base" padding="small">
-              <s-stack direction="inline" justifyContent="space-between" alignItems="center">
-                <s-stack gap="none">
-                  <s-heading>{b.code}</s-heading>
-                  <s-text color="subdued">{b.title}</s-text>
-                </s-stack>
-                {isApplied ? (
-                  <s-badge tone="success">Applied</s-badge>
-                ) : (
-                  <s-button
-                    variant="tertiary"
-                    loading={busyCode === b.code}
-                    disabled={!canUpdate}
-                    onClick={() => apply(b.code)}
-                  >
-                    Apply
-                  </s-button>
-                )}
-              </s-stack>
-            </s-box>
-          );
-        })}
-      </s-stack>
-    </s-section>
+    <s-stack gap="base">
+      {shownCoupons.length > 0 && (
+        <s-section heading={cfg.title || 'Available Coupons'}>
+          <s-stack gap="small-200">
+            {error && <s-banner tone="critical">{error}</s-banner>}
+            {shownCoupons.map((b) => {
+              const isApplied = applied.includes(b.code.toUpperCase());
+              return (
+                <s-box key={b.code} background="subdued" borderRadius="base" padding="small">
+                  <s-stack direction="inline" justifyContent="space-between" alignItems="center">
+                    <s-stack gap="none">
+                      <s-heading>{b.code}</s-heading>
+                      <s-text color="subdued">{b.title}</s-text>
+                    </s-stack>
+                    {isApplied ? (
+                      <s-badge tone="success">Applied</s-badge>
+                    ) : (
+                      <s-button
+                        variant="tertiary"
+                        loading={busyCode === b.code}
+                        disabled={!canUpdate}
+                        onClick={() => apply(b.code)}
+                      >
+                        Apply
+                      </s-button>
+                    )}
+                  </s-stack>
+                </s-box>
+              );
+            })}
+          </s-stack>
+        </s-section>
+      )}
+      {notes.map((b) => (
+        <s-box key={b.title + b.body} border="base" borderRadius="base" padding="base">
+          <s-stack gap="small-300">
+            <s-heading>{b.title}</s-heading>
+            <s-text>{b.body}</s-text>
+          </s-stack>
+        </s-box>
+      ))}
+    </s-stack>
   );
 }
