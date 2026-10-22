@@ -45,8 +45,11 @@ export const loader = async ({ request }) => {
   const user = await findWorkflowUser(email);
   if (!user) return redirect("/workflow");
   if (!canManageBlocks(user)) return redirect("/workflow/orders");
-  const blocks = await prisma.checkoutBlock.findMany({ orderBy: [{ kind: "asc" }, { sort: "asc" }, { createdAt: "asc" }] });
-  return { blocks };
+  const all = await prisma.checkoutBlock.findMany({ orderBy: [{ kind: "asc" }, { sort: "asc" }, { createdAt: "asc" }] });
+  const blocks = all.filter((b) => b.kind !== "settings");
+  const row = all.find((b) => b.kind === "settings");
+  const settings = { title: row?.title || "Available Coupons", max: row?.sort || 0 };
+  return { blocks, settings };
 };
 
 export const action = async ({ request }) => {
@@ -79,6 +82,18 @@ export const action = async ({ request }) => {
         : await prisma.checkoutBlock.create({ data: { ...data, active: true } });
       await publishBlock(block);
       return { ok: id ? "Saved and published to checkout." : "Added and published to checkout." };
+    }
+
+    if (type === "settings") {
+      const title = (fd.get("title") || "").toString().trim() || "Available Coupons";
+      const max   = Math.max(0, parseInt(fd.get("max") || "0", 10) || 0);
+      const row = await prisma.checkoutBlock.upsert({
+        where:  { id: "settings" },
+        update: { title, sort: max },
+        create: { id: "settings", kind: "settings", title, sort: max, active: true },
+      });
+      await publishBlock(row);
+      return { ok: "Coupon box settings saved and published." };
     }
 
     if (type === "toggle") {
@@ -127,12 +142,13 @@ export const action = async ({ request }) => {
 const EMPTY = { id: "", kind: "coupon", title: "", body: "", code: "", sort: 0 };
 
 export default function CheckoutBlocksPage() {
-  const { blocks } = useLoaderData();
+  const { blocks, settings } = useLoaderData();
   const result = useActionData();
   const nav = useNavigation();
   const submit = useSubmit();
   const busy = nav.state !== "idle";
   const [form, setForm] = useState(EMPTY);
+  const [cfg, setCfg] = useState({ title: settings.title, max: settings.max });
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   function send(obj) {
@@ -194,6 +210,22 @@ export default function CheckoutBlocksPage() {
         <div className="sub">Changes are published to your Shopify checkout as soon as you save. Coupon codes must already exist as discount codes in Shopify.</div>
         {result?.ok && <div className="msg ok">{result.ok}</div>}
         {result?.error && <div className="msg err">{result.error}</div>}
+
+        <div className="card">
+          <h2>Coupon box settings</h2>
+          <div className="sub">The heading above the coupons at checkout, and how many to show at once.</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 200px auto", gap: 12, alignItems: "end" }}>
+            <div>
+              <label className="lbl">Box title</label>
+              <input className="inp" value={cfg.title} onChange={(e) => setCfg((c) => ({ ...c, title: e.target.value }))} placeholder="Available Coupons" />
+            </div>
+            <div>
+              <label className="lbl">Max coupons (0 = all)</label>
+              <input className="inp" type="number" min="0" value={cfg.max} onChange={(e) => setCfg((c) => ({ ...c, max: e.target.value }))} />
+            </div>
+            <button type="button" className="btn btn-primary" disabled={busy} onClick={() => send({ type: "settings", title: cfg.title, max: cfg.max })}>Save settings</button>
+          </div>
+        </div>
 
         <form className="card" onSubmit={onSave}>
           <div className="grid">

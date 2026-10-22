@@ -41,17 +41,3 @@ api_access = true
 # Defines settings that will be collected from merchants installing
 # your extension. Learn more:
 # https://shopify.dev/docs/api/checkout-ui-extensions/latest#configuration
-
-[extensions.settings]
-
-  [[extensions.settings.fields]]
-  key = "coupons_title"
-  type = "single_line_text_field"
-  name = "Coupons title"
-  description = "Heading shown above the list of codes. e.g. Available Coupons"
-
-  [[extensions.settings.fields]]
-  key = "max_coupons"
-  type = "number_integer"
-  name = "Max coupons to display"
-  description = "The most coupons to show at once. e.g. 3. Leave empty to show all."

@@ -29,6 +29,7 @@ function parse(node) {
 
 function Extension() {
   const [blocks, setBlocks] = useState([]);
+  const [cfg, setCfg] = useState({title: '', max: 0});
   const [busyCode, setBusyCode] = useState(null);
   const [error, setError] = useState('');
 
@@ -39,8 +40,10 @@ function Extension() {
     shopify
       .query(QUERY, {variables: {type: TYPE}})
       .then(({data}) => {
-        const list = (data?.metaobjects?.nodes || [])
-          .map(parse)
+        const all = (data?.metaobjects?.nodes || []).map(parse);
+        const conf = all.find((b) => b.kind === 'settings');
+        if (conf) setCfg({title: conf.title, max: conf.sort});
+        const list = all
           .filter((b) => b.active && b.kind === wanted)
           .sort((a, b) => a.sort - b.sort);
         setBlocks(list);
@@ -50,9 +53,7 @@ function Extension() {
 
   if (blocks.length === 0) return null;
 
-  const settings = shopify.settings.value;
-  const max = Number(settings.max_coupons);
-  const shown = wanted === 'coupon' && max > 0 ? blocks.slice(0, max) : blocks;
+  const shown = wanted === 'coupon' && cfg.max > 0 ? blocks.slice(0, cfg.max) : blocks;
 
   if (wanted === 'note') {
     return (
@@ -85,7 +86,7 @@ function Extension() {
   }
 
   return (
-    <s-section heading={settings.coupons_title || "Available Coupons"}>
+    <s-section heading={cfg.title || 'Available Coupons'}>
       <s-stack gap="small-200">
         {error && <s-banner tone="critical">{error}</s-banner>}
         {shown.map((b) => {
