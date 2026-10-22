@@ -50,10 +50,14 @@ function Extension() {
 
   if (blocks.length === 0) return null;
 
+  const settings = shopify.settings.value;
+  const max = Number(settings.max_coupons);
+  const shown = wanted === 'coupon' && max > 0 ? blocks.slice(0, max) : blocks;
+
   if (wanted === 'note') {
     return (
       <s-stack gap="base">
-        {blocks.map((b) => (
+        {shown.map((b) => (
           <s-box key={b.title + b.body} border="base" borderRadius="base" padding="base">
             <s-stack gap="small-300">
               <s-heading>{b.title}</s-heading>
@@ -81,10 +85,10 @@ function Extension() {
   }
 
   return (
-    <s-section heading="Available Coupons">
+    <s-section heading={settings.coupons_title || "Available Coupons"}>
       <s-stack gap="small-200">
         {error && <s-banner tone="critical">{error}</s-banner>}
-        {blocks.map((b) => {
+        {shown.map((b) => {
           const isApplied = applied.includes(b.code.toUpperCase());
           return (
             <s-box key={b.code} background="subdued" borderRadius="base" padding="small">

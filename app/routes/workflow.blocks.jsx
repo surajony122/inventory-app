@@ -89,6 +89,23 @@ export const action = async ({ request }) => {
       return { ok: updated.active ? "Turned on." : "Turned off." };
     }
 
+    if (type === "move") {
+      const block = await prisma.checkoutBlock.findUnique({ where: { id: fd.get("id") } });
+      if (!block) return { error: "Block not found." };
+      const list = await prisma.checkoutBlock.findMany({ where: { kind: block.kind }, orderBy: [{ sort: "asc" }, { createdAt: "asc" }] });
+      const i = list.findIndex((x) => x.id === block.id);
+      const j = fd.get("dir") === "up" ? i - 1 : i + 1;
+      if (j < 0 || j >= list.length) return { ok: "Already at the edge." };
+      [list[i], list[j]] = [list[j], list[i]];
+      for (let k = 0; k < list.length; k++) {
+        if (list[k].sort !== k) {
+          const u = await prisma.checkoutBlock.update({ where: { id: list[k].id }, data: { sort: k } });
+          await publishBlock(u);
+        }
+      }
+      return { ok: "Moved." };
+    }
+
     if (type === "delete") {
       const id = fd.get("id");
       await prisma.checkoutBlock.delete({ where: { id } });
@@ -136,7 +153,7 @@ export default function CheckoutBlocksPage() {
     <div className="card">
       <h2>{title}</h2>
       {items.length === 0 && <div className="sub">None yet.</div>}
-      {items.map((b) => (
+      {items.map((b, idx) => (
         <div className="row" key={b.id}>
           <div className="main">
             <div className="t">
@@ -147,6 +164,8 @@ export default function CheckoutBlocksPage() {
             <div className="b">{b.kind === "coupon" ? `${b.title}${b.body ? " — " + b.body : ""}` : b.body}</div>
           </div>
           <div className="acts">
+            <button className="btn" title="Move up" disabled={busy || idx === 0} onClick={() => send({ type: "move", id: b.id, dir: "up" })}>↑</button>
+            <button className="btn" title="Move down" disabled={busy || idx === items.length - 1} onClick={() => send({ type: "move", id: b.id, dir: "down" })}>↓</button>
             <button className="btn" disabled={busy} onClick={() => setForm({ id: b.id, kind: b.kind, title: b.title, body: b.body || "", code: b.code || "", sort: b.sort })}>Edit</button>
             <button className="btn" disabled={busy} onClick={() => send({ type: "toggle", id: b.id })}>{b.active ? "Turn off" : "Turn on"}</button>
             <button className="btn btn-danger" disabled={busy} onClick={() => confirm("Delete this block?") && send({ type: "delete", id: b.id })}>Delete</button>
