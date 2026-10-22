@@ -17,10 +17,6 @@ uid = "8a7e83a0-3c5e-ae1c-09da-f1227ac37bdb3c539a37"
 
 [[extensions.targeting]]
 module = "./src/Checkout.jsx"
-target = "purchase.checkout.reductions.render-after"
-
-[[extensions.targeting]]
-module = "./src/Checkout.jsx"
 target = "purchase.checkout.block.render"
 
 [extensions.capabilities]
