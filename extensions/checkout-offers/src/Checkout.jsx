@@ -32,6 +32,8 @@ function Extension() {
   const [cfg, setCfg] = useState({title: '', max: 0});
   const [busyCode, setBusyCode] = useState(null);
   const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [loaded, setLoaded] = useState(false);
 
   // The reductions target shows coupons; the block target shows notes.
   const wanted = shopify.extension.target === 'purchase.checkout.reductions.render-after' ? 'coupon' : 'note';
@@ -39,7 +41,8 @@ function Extension() {
   useEffect(() => {
     shopify
       .query(QUERY, {variables: {type: TYPE}})
-      .then(({data}) => {
+      .then(({data, errors}) => {
+        if (errors?.length) setLoadError(errors[0].message);
         const all = (data?.metaobjects?.nodes || []).map(parse);
         const conf = all.find((b) => b.kind === 'settings');
         if (conf) setCfg({title: conf.title, max: conf.sort});
@@ -47,11 +50,27 @@ function Extension() {
           .filter((b) => b.active && b.kind === wanted)
           .sort((a, b) => a.sort - b.sort);
         setBlocks(list);
+        setLoaded(true);
       })
-      .catch(() => setBlocks([]));
+      .catch((e) => {
+        setLoadError(String(e?.message || e));
+        setLoaded(true);
+      });
   }, []);
 
-  if (blocks.length === 0) return null;
+  if (blocks.length === 0) {
+    // Only the merchant sees this, inside the checkout editor.
+    if (loaded && shopify.extension.editor) {
+      return (
+        <s-banner tone="warning" heading="Checkout Blocks">
+          {loadError
+            ? 'Could not load blocks: ' + loadError
+            : 'No active ' + wanted + 's were found. Add one in the team portal under Checkout Blocks.'}
+        </s-banner>
+      );
+    }
+    return null;
+  }
 
   const shown = wanted === 'coupon' && cfg.max > 0 ? blocks.slice(0, cfg.max) : blocks;
 
@@ -71,7 +90,6 @@ function Extension() {
   }
 
   const canUpdate = shopify.instructions.value.discounts.canUpdateDiscountCodes;
-  if (!canUpdate) return null;
 
   const applied = shopify.discountCodes.value.map((d) => d.code.toUpperCase());
 
@@ -104,6 +122,7 @@ function Extension() {
                   <s-button
                     variant="tertiary"
                     loading={busyCode === b.code}
+                    disabled={!canUpdate}
                     onClick={() => apply(b.code)}
                   >
                     Apply
