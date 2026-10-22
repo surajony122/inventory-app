@@ -73,52 +73,77 @@ function Extension() {
   const canUpdate = shopify.instructions.value.discounts.canUpdateDiscountCodes;
   const applied = shopify.discountCodes.value.map((d) => d.code.toUpperCase());
 
-  async function apply(code) {
+  async function change(code, type) {
     setError('');
     setBusyCode(code);
-    const result = await shopify.applyDiscountCodeChange({type: 'addDiscountCode', code});
+    const result = await shopify.applyDiscountCodeChange({type, code});
     setBusyCode(null);
     if (result.type === 'error') {
-      setError("That code didn't work. Check the order total and try again.");
+      setError(
+        type === 'addDiscountCode'
+          ? "That code didn't work. Check the order total and try again."
+          : "Couldn't remove that code. Please try again.",
+      );
     }
   }
 
   return (
     <s-stack gap="base">
       {shownCoupons.length > 0 && (
-        <s-section heading={cfg.title || 'Available Coupons'}>
-          <s-stack gap="small-200">
-            {error && <s-banner tone="critical">{error}</s-banner>}
-            {shownCoupons.map((b) => {
-              const isApplied = applied.includes(b.code.toUpperCase());
-              return (
-                <s-box key={b.code} background="subdued" borderRadius="base" padding="small">
-                  <s-stack direction="inline" justifyContent="space-between" alignItems="center">
-                    <s-stack gap="none">
-                      <s-heading>{b.code}</s-heading>
-                      <s-text color="subdued">{b.title}</s-text>
-                    </s-stack>
-                    {isApplied ? (
-                      <s-badge tone="success">Applied</s-badge>
-                    ) : (
+        <s-box border="base" borderRadius="large" padding="base">
+          <s-details open>
+            <s-summary>
+              <s-stack direction="inline" gap="small-200" alignItems="center">
+                <s-icon type="discount" />
+                <s-text type="strong">{cfg.title || 'Available Coupons'}</s-text>
+              </s-stack>
+            </s-summary>
+            <s-stack gap="small-200">
+              {error && <s-banner tone="critical">{error}</s-banner>}
+              {shownCoupons.map((b) => {
+                const isApplied = applied.includes(b.code.toUpperCase());
+                if (isApplied) {
+                  return (
+                    <s-banner key={b.code} tone="success" heading={b.code + ' applied'}>
+                      <s-stack direction="inline" justifyContent="space-between" alignItems="center">
+                        <s-text>{b.title}</s-text>
+                        <s-button
+                          variant="secondary"
+                          loading={busyCode === b.code}
+                          disabled={!canUpdate}
+                          onClick={() => change(b.code, 'removeDiscountCode')}
+                        >
+                          Remove
+                        </s-button>
+                      </s-stack>
+                    </s-banner>
+                  );
+                }
+                return (
+                  <s-box key={b.code} background="subdued" border="base" borderRadius="base" padding="small">
+                    <s-stack direction="inline" justifyContent="space-between" alignItems="center">
+                      <s-stack gap="none">
+                        <s-heading>{b.code}</s-heading>
+                        <s-text color="subdued">{b.title}</s-text>
+                      </s-stack>
                       <s-button
-                        variant="tertiary"
+                        variant="secondary"
                         loading={busyCode === b.code}
                         disabled={!canUpdate}
-                        onClick={() => apply(b.code)}
+                        onClick={() => change(b.code, 'addDiscountCode')}
                       >
                         Apply
                       </s-button>
-                    )}
-                  </s-stack>
-                </s-box>
-              );
-            })}
-          </s-stack>
-        </s-section>
+                    </s-stack>
+                  </s-box>
+                );
+              })}
+            </s-stack>
+          </s-details>
+        </s-box>
       )}
       {notes.map((b) => (
-        <s-box key={b.title + b.body} border="base" borderRadius="base" padding="base">
+        <s-box key={b.title + b.body} border="base" borderRadius="large" padding="base">
           <s-stack gap="small-300">
             <s-heading>{b.title}</s-heading>
             <s-text>{b.body}</s-text>
