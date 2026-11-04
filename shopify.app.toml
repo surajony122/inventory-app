@@ -88,3 +88,11 @@ type = "boolean"
 [metaobjects.app.checkout_block.fields.sort]
 name = "Sort"
 type = "number_integer"
+
+[metaobjects.app.checkout_block.fields.cond_type]
+name = "Condition type"
+type = "single_line_text_field"
+
+[metaobjects.app.checkout_block.fields.cond_value]
+name = "Condition value"
+type = "single_line_text_field"

@@ -32,6 +32,8 @@ function fieldsFor(b) {
     { key: "code",   value: b.code || "" },
     { key: "active", value: b.active ? "true" : "false" },
     { key: "sort",   value: String(b.sort ?? 0) },
+    { key: "cond_type",  value: b.condType || "always" },
+    { key: "cond_value", value: b.condValue || "" },
   ];
 }
 

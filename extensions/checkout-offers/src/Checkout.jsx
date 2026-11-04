@@ -11,6 +11,12 @@ const QUERY = `query ($type: String!) {
   }
 }`;
 
+const PRODUCT_QUERY = `query ($ids: [ID!]!) {
+  nodes(ids: $ids) {
+    ... on Product { tags collections(first: 25) { nodes { handle } } }
+  }
+}`;
+
 export default async () => {
   render(<Extension />, document.body);
 };
@@ -24,6 +30,8 @@ function parse(node) {
     code: f.code || '',
     active: f.active === 'true',
     sort: Number(f.sort) || 0,
+    condType: f.cond_type || 'always',
+    condValue: f.cond_value || '',
   };
 }
 
@@ -35,6 +43,12 @@ function Extension() {
   const [loadError, setLoadError] = useState('');
   const [loaded, setLoaded] = useState(false);
   const [open, setOpen] = useState(true);
+  const [facts, setFacts] = useState({tags: [], handles: [], ready: false});
+
+  // Tags and collections of the products currently in the cart, for conditional blocks.
+  const productIds = [...new Set(shopify.lines.value.map((l) => l.merchandise?.product?.id).filter(Boolean))];
+  const idsKey = productIds.join(',');
+  const needsFacts = blocks.some((b) => b.condType !== 'always');
 
   useEffect(() => {
     shopify
@@ -53,8 +67,36 @@ function Extension() {
       });
   }, []);
 
-  const coupons = blocks.filter((b) => b.kind === 'coupon');
-  const notes = blocks.filter((b) => b.kind === 'note');
+  useEffect(() => {
+    if (!needsFacts) return;
+    if (productIds.length === 0) {
+      setFacts({tags: [], handles: [], ready: true});
+      return;
+    }
+    shopify
+      .query(PRODUCT_QUERY, {variables: {ids: productIds}})
+      .then(({data}) => {
+        const tags = [];
+        const handles = [];
+        (data?.nodes || []).forEach((n) => {
+          (n?.tags || []).forEach((t) => tags.push(String(t).toLowerCase()));
+          (n?.collections?.nodes || []).forEach((c) => handles.push(String(c.handle).toLowerCase()));
+        });
+        setFacts({tags, handles, ready: true});
+      })
+      .catch(() => setFacts({tags: [], handles: [], ready: true}));
+  }, [idsKey, needsFacts]);
+
+  const matches = (b) => {
+    if (b.condType === 'always') return true;
+    if (!facts.ready) return false;
+    const wanted = b.condValue.split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
+    const have = b.condType === 'tag' ? facts.tags : facts.handles;
+    return wanted.some((w) => have.includes(w));
+  };
+  const visible = blocks.filter(matches);
+  const coupons = visible.filter((b) => b.kind === 'coupon');
+  const notes = visible.filter((b) => b.kind === 'note');
   const shownCoupons = cfg.max > 0 ? coupons.slice(0, cfg.max) : coupons;
 
   if (blocks.length === 0) {

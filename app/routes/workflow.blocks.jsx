@@ -74,9 +74,13 @@ export const action = async ({ request }) => {
       const body  = (fd.get("body") || "").toString().trim();
       const code  = (fd.get("code") || "").toString().trim().toUpperCase();
       const sort  = parseInt(fd.get("sort") || "0", 10) || 0;
+      const ct    = fd.get("condType");
+      const condType  = ct === "tag" || ct === "collection" ? ct : "always";
+      const condValue = condType === "always" ? null : (fd.get("condValue") || "").toString().split(",").map((x) => x.trim().toLowerCase()).filter(Boolean).join(",");
+      if (condType !== "always" && !condValue) return { error: "Enter at least one " + condType + " for the condition." };
       if (!title) return { error: "Title is required." };
       if (kind === "coupon" && !code) return { error: "A coupon needs a discount code." };
-      const data = { kind, title, body, code: kind === "coupon" ? code : null, sort };
+      const data = { kind, title, body, code: kind === "coupon" ? code : null, sort, condType, condValue };
       const block = id
         ? await prisma.checkoutBlock.update({ where: { id }, data })
         : await prisma.checkoutBlock.create({ data: { ...data, active: true } });
@@ -139,7 +143,7 @@ export const action = async ({ request }) => {
   return { error: "Unknown action." };
 };
 
-const EMPTY = { id: "", kind: "coupon", title: "", body: "", code: "", sort: 0 };
+const EMPTY = { id: "", kind: "coupon", title: "", body: "", code: "", sort: 0, condType: "always", condValue: "" };
 
 export default function CheckoutBlocksPage() {
   const { blocks, settings } = useLoaderData();
@@ -176,13 +180,14 @@ export default function CheckoutBlocksPage() {
               {b.kind === "coupon" ? b.code : b.title}
               <span className={`pill${b.active ? " on" : ""}`}>{b.active ? "On" : "Off"}</span>
               <span className="pill">Order {b.sort}</span>
+              {b.condType && b.condType !== "always" && <span className="pill">{b.condType}: {b.condValue}</span>}
             </div>
             <div className="b">{b.kind === "coupon" ? `${b.title}${b.body ? " — " + b.body : ""}` : b.body}</div>
           </div>
           <div className="acts">
             <button className="btn" title="Move up" disabled={busy || idx === 0} onClick={() => send({ type: "move", id: b.id, dir: "up" })}>↑</button>
             <button className="btn" title="Move down" disabled={busy || idx === items.length - 1} onClick={() => send({ type: "move", id: b.id, dir: "down" })}>↓</button>
-            <button className="btn" disabled={busy} onClick={() => setForm({ id: b.id, kind: b.kind, title: b.title, body: b.body || "", code: b.code || "", sort: b.sort })}>Edit</button>
+            <button className="btn" disabled={busy} onClick={() => setForm({ id: b.id, kind: b.kind, title: b.title, body: b.body || "", code: b.code || "", sort: b.sort, condType: b.condType || "always", condValue: b.condValue || "" })}>Edit</button>
             <button className="btn" disabled={busy} onClick={() => send({ type: "toggle", id: b.id })}>{b.active ? "Turn off" : "Turn on"}</button>
             <button className="btn btn-danger" disabled={busy} onClick={() => confirm("Delete this block?") && send({ type: "delete", id: b.id })}>Delete</button>
           </div>
@@ -250,6 +255,20 @@ export default function CheckoutBlocksPage() {
               <label className="lbl">Order</label>
               <input className="inp" type="number" value={form.sort} onChange={set("sort")} />
             </div>
+            <div>
+              <label className="lbl">Show when cart has</label>
+              <select className="inp" value={form.condType} onChange={set("condType")}>
+                <option value="always">Always show</option>
+                <option value="tag">A product with tag</option>
+                <option value="collection">A product in collection</option>
+              </select>
+            </div>
+            {form.condType !== "always" ? (
+              <div style={{ gridColumn: "2 / -1" }}>
+                <label className="lbl">{form.condType === "tag" ? "Product tag(s)" : "Collection handle(s)"} — separate with commas</label>
+                <input className="inp" value={form.condValue} onChange={set("condValue")} placeholder={form.condType === "tag" ? "silver" : "silver-articles"} />
+              </div>
+            ) : null}
             <div className="wide">
               <label className="lbl">{form.kind === "coupon" ? "Extra detail (optional)" : "Message"}</label>
               <textarea className="inp" value={form.body} onChange={set("body")} placeholder={form.kind === "note" ? "Your order may arrive in multiple packages; all shipments will be accompanied by a tracking message." : ""} />

@@ -92,6 +92,8 @@ model CheckoutBlock {
   title     String
   body      String?
   code      String?  // discount code, coupons only
+  condType  String   @default("always") // "always" | "tag" | "collection"
+  condValue String?  // comma-separated tags or collection handles
   active    Boolean  @default(true)
   sort      Int      @default(0)
   createdAt DateTime @default(now())
