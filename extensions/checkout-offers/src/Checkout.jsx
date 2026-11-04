@@ -58,7 +58,7 @@ function Extension() {
         const all = (data?.metaobjects?.nodes || []).map(parse);
         const conf = all.find((b) => b.kind === 'settings');
         if (conf) setCfg({title: conf.title, max: conf.sort});
-        setBlocks(all.filter((b) => b.active && b.kind !== 'settings').sort((a, b) => a.sort - b.sort));
+        setBlocks(all.filter((b) => b.active && b.kind === 'coupon').sort((a, b) => a.sort - b.sort));
         setLoaded(true);
       })
       .catch((e) => {
@@ -96,7 +96,6 @@ function Extension() {
   };
   const visible = blocks.filter(matches);
   const coupons = visible.filter((b) => b.kind === 'coupon');
-  const notes = visible.filter((b) => b.kind === 'note');
   const shownCoupons = cfg.max > 0 ? coupons.slice(0, cfg.max) : coupons;
 
   if (blocks.length === 0) {
@@ -106,7 +105,7 @@ function Extension() {
         <s-banner tone="warning" heading="Checkout Blocks">
           {loadError
             ? 'Could not load blocks: ' + loadError
-            : 'No active coupons or notes were found. Add them in the team portal under Checkout Blocks.'}
+            : 'No active coupons were found. Add them in the team portal under Checkout Blocks.'}
         </s-banner>
       );
     }
@@ -190,14 +189,6 @@ function Extension() {
           </s-stack>
         </s-box>
       )}
-      {notes.map((b) => (
-        <s-box key={b.title + b.body} border="base" borderRadius="large" padding="base">
-          <s-stack gap="small-300">
-            <s-heading>{b.title}</s-heading>
-            <s-text>{b.body}</s-text>
-          </s-stack>
-        </s-box>
-      ))}
     </s-stack>
   );
 }
