@@ -8,6 +8,7 @@ api_version = "2026-10"
 [[extensions]]
 name = "checkout-notes"
 handle = "checkout-notes"
+uid = "68e2f66a-d80d-1d43-02a0-c0d7bc7b7612435b31d1"
 type = "ui_extension"
 
 # Controls where in Shopify your extension will be injected,
