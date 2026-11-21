@@ -153,17 +153,25 @@ function pathOf(u) {
   }
 }
 
-// The utm_campaign the ad puts on its link (from the ad's URL parameters). This is what the storefront sees,
-// and it is often different from the campaign's name in Meta. A {{campaign.name}} macro means the Meta name.
-function utmCampaignFrom(urlTags, campaignName) {
+// The utm_campaign the ad puts on its link (from the ad's URL parameters). This is what the storefront sees.
+// Meta fills macros in at click time: {{ad.name}}, {{adset.name}}, {{campaign.name}}. We fill them in the same way.
+function utmCampaignFrom(urlTags, names) {
   if (!urlTags) return "";
   let v = "";
   try { v = new URLSearchParams(String(urlTags).replace(/^\?/, "")).get("utm_campaign") || ""; } catch (e) { return ""; }
   v = v.trim();
   if (!v) return "";
-  if (/\{\{\s*campaign\.name\s*\}\}/i.test(v)) return v.replace(/\{\{\s*campaign\.name\s*\}\}/gi, campaignName || "").trim();
+  v = v
+    .replace(/\{\{\s*campaign\.name\s*\}\}/gi, names.campaign || "")
+    .replace(/\{\{\s*adset\.name\s*\}\}/gi, names.adset || "")
+    .replace(/\{\{\s*ad\.name\s*\}\}/gi, names.ad || "");
   if (v.includes("{{")) return "";
-  return v;
+  return v.trim();
+}
+
+// Copies of an ad ("... – Copy 3") carry their own name in the link, so rules match the name without the copy suffix.
+function baseName(s) {
+  return String(s || "").replace(/\s*[–-]\s*Copy(\s*\d+)?\s*$/i, "").trim();
 }
 
 function describeCreative(c) {
@@ -204,7 +212,7 @@ export async function fetchMetaAds({ maxPages = 5 } = {}) {
       const collection = d.links.map(collectionFromUrl).find(Boolean) || "";
       rows.push({
         campaign: ad.campaign?.name || "(no campaign)",
-        utm: utmCampaignFrom(d.urlTags, ad.campaign?.name),
+        utm: utmCampaignFrom(d.urlTags, { campaign: ad.campaign?.name, adset: ad.adset?.name, ad: ad.name }),
         adset: ad.adset?.name || "",
         adId: ad.id,
         thumb: ad.creative?.thumbnail_url || "",
@@ -243,7 +251,7 @@ export async function productSetHandles(productSetId, limit = 12) {
 export async function suggestRules(rows) {
   const by = new Map();
   for (const r of rows) {
-    const key = r.utm || r.campaign;
+    const key = baseName(r.utm) || r.campaign;
     const g = by.get(key) || { campaign: key, metaNames: new Set(), fromUtm: !!r.utm, formats: new Set(), handles: [], collection: "", ads: 0, landings: new Set(), sets: new Set(), paths: new Map(), adNames: [] };
     g.formats.add(r.format);
     g.landings.add(r.landing);
