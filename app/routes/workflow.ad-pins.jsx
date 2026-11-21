@@ -197,11 +197,17 @@ export default function AdPinsPage() {
             <h2>Suggested rules from Meta</h2>
             <div className="sub">One per campaign. Products come from the links in the ads (or the catalogue product set). Campaigns whose ads link only to a collection have no product in Meta: add those by hand. Nothing is saved until you press Add.</div>
             <table className="tbl">
-              <thead><tr><th>Campaign (keyword)</th><th>Ads</th><th>Formats</th><th>Landing page (link in the ads)</th><th>Products found</th><th></th></tr></thead>
+              <thead><tr><th>Keyword (matches the shopper's utm_campaign)</th><th>Ads</th><th>Formats</th><th>Landing page (link in the ads)</th><th>Products found</th><th></th></tr></thead>
               <tbody>
                 {result.suggestions.map((s) => (
                   <tr key={s.campaign}>
-                    <td className="mono">{s.campaign}</td>
+                    <td className="mono">
+                      {s.campaign}
+                      <div style={{ color: "var(--text-3)", fontFamily: "inherit", marginTop: 3 }}>
+                        {s.fromUtm ? "utm_campaign from the ad link" : "Meta campaign name (no utm_campaign in the ad link)"}
+                        {s.fromUtm && s.metaNames[0] !== s.campaign ? " · Meta: " + s.metaNames.join(" / ") : ""}
+                      </div>
+                    </td>
                     <td>{s.ads}</td>
                     <td>{s.formats}</td>
                     <td className="mono">

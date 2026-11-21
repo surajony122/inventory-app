@@ -153,6 +153,19 @@ function pathOf(u) {
   }
 }
 
+// The utm_campaign the ad puts on its link (from the ad's URL parameters). This is what the storefront sees,
+// and it is often different from the campaign's name in Meta. A {{campaign.name}} macro means the Meta name.
+function utmCampaignFrom(urlTags, campaignName) {
+  if (!urlTags) return "";
+  let v = "";
+  try { v = new URLSearchParams(String(urlTags).replace(/^\?/, "")).get("utm_campaign") || ""; } catch (e) { return ""; }
+  v = v.trim();
+  if (!v) return "";
+  if (/\{\{\s*campaign\.name\s*\}\}/i.test(v)) return v.replace(/\{\{\s*campaign\.name\s*\}\}/gi, campaignName || "").trim();
+  if (v.includes("{{")) return "";
+  return v;
+}
+
 function describeCreative(c) {
   const oss = c?.object_story_spec || {};
   const ld = oss.link_data || {};
@@ -170,7 +183,7 @@ function describeCreative(c) {
   else if (oss.video_data || c?.object_type === "VIDEO") format = "Video / Reel";
   else if (c?.product_set_id || oss.template_data) format = "Catalogue";
   else if (c?.asset_feed_spec) format = "Dynamic creative";
-  return { links, format, productSetId: c?.product_set_id || oss.template_data?.product_set_id || "" };
+  return { links, format, urlTags: c?.url_tags || "", productSetId: c?.product_set_id || oss.template_data?.product_set_id || "" };
 }
 
 // Reads active ads: campaign, ad, format, destination links and products found in them.
@@ -178,7 +191,7 @@ export async function fetchMetaAds({ maxPages = 5 } = {}) {
   if (!metaStatus().configured) throw new Error("Meta is not connected yet. Add META_ACCESS_TOKEN and META_AD_ACCOUNT_ID in the server settings.");
   const acct = "act_" + String(process.env.META_AD_ACCOUNT_ID).replace(/^act_/, "");
   let json = await graph(`${acct}/ads`, {
-    fields: "name,effective_status,campaign{name},adset{name},creative{object_type,object_story_spec,asset_feed_spec,product_set_id,link_url}",
+    fields: "name,effective_status,campaign{name},adset{name},creative{object_type,object_story_spec,asset_feed_spec,product_set_id,link_url,url_tags}",
     effective_status: JSON.stringify(["ACTIVE"]),
     limit: "100",
   });
@@ -191,6 +204,7 @@ export async function fetchMetaAds({ maxPages = 5 } = {}) {
       const collection = d.links.map(collectionFromUrl).find(Boolean) || "";
       rows.push({
         campaign: ad.campaign?.name || "(no campaign)",
+        utm: utmCampaignFrom(d.urlTags, ad.campaign?.name),
         adset: ad.adset?.name || "",
         ad: ad.name,
         format: d.format,
@@ -226,7 +240,8 @@ export async function productSetHandles(productSetId, limit = 12) {
 export async function suggestRules(rows) {
   const by = new Map();
   for (const r of rows) {
-    const g = by.get(r.campaign) || { campaign: r.campaign, formats: new Set(), handles: [], collection: "", ads: 0, landings: new Set(), sets: new Set(), paths: new Map() };
+    const key = r.utm || r.campaign;
+    const g = by.get(key) || { campaign: key, metaNames: new Set(), fromUtm: !!r.utm, formats: new Set(), handles: [], collection: "", ads: 0, landings: new Set(), sets: new Set(), paths: new Map() };
     g.formats.add(r.format);
     g.landings.add(r.landing);
     g.ads += 1;
@@ -234,7 +249,8 @@ export async function suggestRules(rows) {
     if (!g.collection && r.collection) g.collection = r.collection;
     if (r.productSetId) g.sets.add(r.productSetId);
     (r.paths || []).forEach((p) => g.paths.set(p, (g.paths.get(p) || 0) + 1));
-    by.set(r.campaign, g);
+    g.metaNames.add(r.campaign);
+    by.set(key, g);
   }
   const out = [];
   for (const g of by.values()) {
@@ -245,6 +261,8 @@ export async function suggestRules(rows) {
     }
     out.push({
       campaign: g.campaign,
+      fromUtm: g.fromUtm,
+      metaNames: [...g.metaNames].slice(0, 3),
       formats: [...g.formats].join(", "),
       landings: [...g.landings].join(", "),
       ads: g.ads,
