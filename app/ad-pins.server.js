@@ -144,6 +144,15 @@ function collectionFromUrl(u) {
   return m ? m[1].toLowerCase() : "";
 }
 
+function pathOf(u) {
+  try {
+    const x = new URL(u);
+    return x.pathname.replace(/\/+$/, "") || "/";
+  } catch (e) {
+    return "";
+  }
+}
+
 function describeCreative(c) {
   const oss = c?.object_story_spec || {};
   const ld = oss.link_data || {};
@@ -185,7 +194,8 @@ export async function fetchMetaAds({ maxPages = 5 } = {}) {
         adset: ad.adset?.name || "",
         ad: ad.name,
         format: d.format,
-        links: d.links.slice(0, 3),
+        links: d.links.slice(0, 6),
+        paths: [...new Set(d.links.map(pathOf).filter(Boolean))].slice(0, 6),
         handles,
         collection,
         productSetId: d.productSetId,
@@ -216,13 +226,14 @@ export async function productSetHandles(productSetId, limit = 12) {
 export async function suggestRules(rows) {
   const by = new Map();
   for (const r of rows) {
-    const g = by.get(r.campaign) || { campaign: r.campaign, formats: new Set(), handles: [], collection: "", ads: 0, landings: new Set(), sets: new Set() };
+    const g = by.get(r.campaign) || { campaign: r.campaign, formats: new Set(), handles: [], collection: "", ads: 0, landings: new Set(), sets: new Set(), paths: new Map() };
     g.formats.add(r.format);
     g.landings.add(r.landing);
     g.ads += 1;
     r.handles.forEach((h) => { if (!g.handles.includes(h)) g.handles.push(h); });
     if (!g.collection && r.collection) g.collection = r.collection;
     if (r.productSetId) g.sets.add(r.productSetId);
+    (r.paths || []).forEach((p) => g.paths.set(p, (g.paths.get(p) || 0) + 1));
     by.set(r.campaign, g);
   }
   const out = [];
@@ -239,6 +250,7 @@ export async function suggestRules(rows) {
       ads: g.ads,
       collection: g.collection,
       handles: g.handles.slice(0, 8),
+      pages: [...g.paths.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([path, n]) => ({ path, n })),
     });
   }
   return out;

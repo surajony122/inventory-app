@@ -197,17 +197,43 @@ export default function AdPinsPage() {
             <h2>Suggested rules from Meta</h2>
             <div className="sub">One per campaign. Products come from the links in the ads (or the catalogue product set). Campaigns whose ads link only to a collection have no product in Meta: add those by hand. Nothing is saved until you press Add.</div>
             <table className="tbl">
-              <thead><tr><th>Campaign (keyword)</th><th>Ads</th><th>Formats / landing</th><th>Products found</th><th></th></tr></thead>
+              <thead><tr><th>Campaign (keyword)</th><th>Ads</th><th>Formats</th><th>Landing page (link in the ads)</th><th>Products found</th><th></th></tr></thead>
               <tbody>
                 {result.suggestions.map((s) => (
                   <tr key={s.campaign}>
                     <td className="mono">{s.campaign}</td>
                     <td>{s.ads}</td>
-                    <td>{s.formats}<br /><span style={{ color: "var(--text-3)" }}>{s.landings}</span></td>
+                    <td>{s.formats}</td>
+                    <td className="mono">
+                      {s.pages && s.pages.length
+                        ? s.pages.map((pg) => <div key={pg.path}>{pg.path} <span style={{ color: "var(--text-3)" }}>× {pg.n}</span></div>)
+                        : <span style={{ color: "var(--text-3)" }}>no link in Meta ({s.landings})</span>}
+                    </td>
                     <td className="mono">{s.handles.length ? s.handles.join(", ") : "none in Meta"}</td>
                     <td>
                       <button className="btn" disabled={busy || !s.handles.length} onClick={() => send({ type: "addSuggestion", keyword: s.campaign, handles: s.handles.join(","), collection: s.collection })}>Add rule</button>
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {result?.rows && (
+          <div className="card">
+            <h2>All active ads ({result.rows.length})</h2>
+            <div className="sub">Every ad Meta returned, with where its link goes. “Landing” says whether the link opens a product, a collection or something else.</div>
+            <table className="tbl">
+              <thead><tr><th>Campaign</th><th>Ad</th><th>Format</th><th>Landing</th><th>Destination link(s)</th></tr></thead>
+              <tbody>
+                {result.rows.map((r, i) => (
+                  <tr key={i}>
+                    <td className="mono">{r.campaign}</td>
+                    <td>{r.ad}</td>
+                    <td>{r.format}</td>
+                    <td>{r.landing}</td>
+                    <td className="mono">{r.paths && r.paths.length ? r.paths.map((x) => <div key={x}>{x}</div>) : "none"}</td>
                   </tr>
                 ))}
               </tbody>
