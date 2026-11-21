@@ -110,6 +110,14 @@ model AdPinRule {
   active     Boolean  @default(true)
   source     String   @default("manual") // "manual" | "meta"
   note       String?
+  // Auto mode: the product list is recomputed live from store data instead of typed by hand
+  mode        String    @default("manual") // "manual" | "auto"
+  metric      String    @default("orders") // orders | units | revenue | views | carts
+  windowDays  Int       @default(7)
+  topN        Int       @default(16)
+  scope       String    @default("ad")     // "ad" = only visitors/orders from this ad, "collection" = everyone
+  refreshedAt DateTime?
+  autoNote    String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }

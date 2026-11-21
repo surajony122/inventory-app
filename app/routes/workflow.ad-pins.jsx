@@ -6,7 +6,7 @@ import prisma from "../db.server";
 import { canManageBlocks } from "../checkout-blocks.server";
 import {
   cleanHandles, publishRule, unpublishRule, publishAllRules, unknownHandles,
-  metaStatus, fetchMetaAds, suggestRules,
+  metaStatus, fetchMetaAds, suggestRules, METRICS, refreshAutoRule, refreshAutoRules,
 } from "../ad-pins.server";
 
 const CSS = `
@@ -69,7 +69,7 @@ export const loader = async ({ request }) => {
     themeId: process.env.PREVIEW_THEME_ID || "156757819529",
     domain: process.env.STOREFRONT_DOMAIN || "unniyarcha.com",
   };
-  return { rules, meta: metaStatus(), preview };
+  return { rules, meta: metaStatus(), preview, metrics: METRICS };
 };
 
 export const action = async ({ request }) => {
@@ -88,13 +88,29 @@ export const action = async ({ request }) => {
       const id = fd.get("id");
       const keyword = (fd.get("keyword") || "").toString().trim();
       const collection = (fd.get("collection") || "").toString().trim().toLowerCase().replace(/^.*\/collections\//, "").split(/[?#\/]/)[0] || null;
-      const handles = cleanHandles(fd.get("handles"));
+      const mode = fd.get("mode") === "auto" ? "auto" : "manual";
+      const metric = METRICS.some((m) => m.id === fd.get("metric")) ? fd.get("metric") : "orders";
+      const windowDays = Math.min(Math.max(parseInt(fd.get("windowDays") || "7", 10) || 7, 1), 90);
+      const topN = Math.min(Math.max(parseInt(fd.get("topN") || "16", 10) || 16, 1), 40);
+      const scope = fd.get("scope") === "collection" ? "collection" : "ad";
       if (keyword.length < 3) return { error: "The campaign keyword needs at least 3 characters, so it does not match every visit." };
-      if (!handles.length) return { error: "Add at least one product handle (or paste product links)." };
-      const data = { keyword, handles: handles.join(","), collection, source: type === "addSuggestion" ? "meta" : "manual" };
-      const rule = id
-        ? await prisma.adPinRule.update({ where: { id }, data: { keyword, handles: data.handles, collection } })
+      const handles = cleanHandles(fd.get("handles"));
+      if (mode === "manual" && !handles.length) return { error: "Add at least one product handle (or paste product links), or choose Auto." };
+      if (mode === "auto" && !collection && scope === "collection") return { error: "For a whole-store list, choose a collection so the products fit the page." };
+      const base = { keyword, collection, mode, metric, windowDays, topN, scope };
+      const data = { ...base, handles: mode === "manual" ? handles.join(",") : "", source: type === "addSuggestion" ? "meta" : "manual" };
+      let rule = id
+        ? await prisma.adPinRule.update({ where: { id }, data: mode === "manual" ? { ...base, handles: data.handles, autoNote: null } : base })
         : await prisma.adPinRule.create({ data: { ...data, active: true } });
+      if (mode === "auto") {
+        try {
+          rule = await refreshAutoRule(rule.id);
+          return { ok: (id ? "Saved." : "Added.") + " Live list built: " + rule.autoNote + "." };
+        } catch (e) {
+          await publishRule(rule).catch(() => {});
+          return { error: "Rule saved, but the live list could not be built: " + e.message };
+        }
+      }
       await publishRule(rule);
       let warn = "";
       try {
@@ -102,6 +118,16 @@ export const action = async ({ request }) => {
         if (missing.length) warn = " Warning: no product found for " + missing.join(", ") + ".";
       } catch (e) { /* the check is a courtesy only */ }
       return { ok: (id ? "Saved and published." : "Added and published.") + warn };
+    }
+
+    if (type === "refresh") {
+      const r = await refreshAutoRule(fd.get("id"));
+      return { ok: r && r.autoNote ? "Refreshed: " + r.autoNote + "." : "Refreshed." };
+    }
+
+    if (type === "refreshAll") {
+      const r = await refreshAutoRules();
+      return r.errors.length ? { error: `Refreshed ${r.ok}. Problems: ${r.errors.join(" | ")}` } : { ok: `Refreshed ${r.ok} auto rule${r.ok === 1 ? "" : "s"}.` };
     }
 
     if (type === "toggle") {
@@ -136,10 +162,10 @@ export const action = async ({ request }) => {
   return { error: "Unknown action." };
 };
 
-const EMPTY = { id: "", keyword: "", handles: "", collection: "" };
+const EMPTY = { id: "", keyword: "", handles: "", collection: "", mode: "manual", metric: "orders", windowDays: 7, topN: 16, scope: "ad" };
 
 export default function AdPinsPage() {
-  const { rules, meta, preview } = useLoaderData();
+  const { rules, meta, preview, metrics } = useLoaderData();
   const result = useActionData();
   const nav = useNavigation();
   const submit = useSubmit();
@@ -267,18 +293,61 @@ export default function AdPinsPage() {
               <input className="inp" value={form.keyword} onChange={set("keyword")} placeholder="Custom_Reel_CLP_Category_Earrings" />
             </div>
             <div>
-              <label className="lbl">Product handles or links (in order, comma separated)</label>
-              <input className="inp" value={form.handles} onChange={set("handles")} placeholder="up to 40 handles, in order: the first 16 or more make a full first screen" />
+              <label className="lbl">Products come from</label>
+              <select className="inp" value={form.mode} onChange={set("mode")}>
+                <option value="manual">A list I type (manual)</option>
+                <option value="auto">Live from store data (auto)</option>
+              </select>
             </div>
             <div>
-              <label className="lbl">Only on collection (optional)</label>
+              <label className="lbl">Only on collection {form.mode === "auto" ? "(also filters the products)" : "(optional)"}</label>
               <input className="inp" value={form.collection} onChange={set("collection")} placeholder="earrings" />
             </div>
             <button className="btn btn-primary" disabled={busy}>{busy ? "Saving…" : form.id ? "Save" : "Add"}</button>
           </div>
+          {form.mode === "manual" ? (
+            <div style={{ marginTop: 10 }}>
+              <label className="lbl">Product handles or links (in order, comma separated)</label>
+              <input className="inp" value={form.handles} onChange={set("handles")} placeholder="up to 40 handles, in order" />
+            </div>
+          ) : (
+            <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1.4fr 0.8fr 0.7fr 1fr", gap: 12 }}>
+              <div>
+                <label className="lbl">Rank products by</label>
+                <select className="inp" value={form.metric} onChange={set("metric")}>
+                  {metrics.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="lbl">Look back</label>
+                <select className="inp" value={form.windowDays} onChange={set("windowDays")}>
+                  {[1, 3, 7, 14, 30].map((d) => <option key={d} value={d}>{d === 1 ? "1 day" : d + " days"}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="lbl">How many</label>
+                <select className="inp" value={form.topN} onChange={set("topN")}>
+                  {[8, 16, 24, 40].map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="lbl">Count data from</label>
+                <select className="inp" value={form.scope} onChange={set("scope")}>
+                  <option value="ad">This ad only (keyword)</option>
+                  <option value="collection">Everyone (whole store)</option>
+                </select>
+              </div>
+            </div>
+          )}
+          {form.mode === "auto" && (
+            <div className="sub" style={{ marginTop: 8 }}>
+              Refreshes by itself with the store's regular sync, or press Refresh on the rule. Needs the app's “read reports” permission. If this ad has no visits or orders yet, nothing is pinned (the page stays normal). “Most viewed” and “most added to cart” only count visits that start on a product page.
+            </div>
+          )}
           <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
             {form.id && <button type="button" className="btn" onClick={() => setForm(EMPTY)}>Cancel edit</button>}
             <span style={{ flex: 1 }} />
+            <button type="button" className="btn" disabled={busy} onClick={() => send({ type: "refreshAll" })}>Refresh all auto rules</button>
             <button type="button" className="btn" disabled={busy} onClick={() => send({ type: "publishAll" })}>Publish all to storefront</button>
           </div>
         </form>
@@ -292,10 +361,16 @@ export default function AdPinsPage() {
                 <div className="t">
                   {r.keyword}
                   <span className={`pill${r.active ? " on" : ""}`}>{r.active ? "On" : "Off"}</span>
-                  <span className="pill">{r.source}</span>
+                  <span className="pill">{r.mode === "auto" ? "auto" : r.source}</span>
                   {r.collection && <span className="pill">collection: {r.collection}</span>}
                 </div>
-                <div className="b mono">{r.handles.split(",").join("  ›  ")}</div>
+                {r.mode === "auto" && (
+                  <div className="sub" style={{ margin: "2px 0" }}>
+                    {(metrics.find((m) => m.id === r.metric) || {}).label} · last {r.windowDays} day{r.windowDays === 1 ? "" : "s"} · top {r.topN} · {r.scope === "ad" ? "this ad only" : "everyone"}
+                    {r.autoNote ? " · " + r.autoNote : ""}{r.refreshedAt ? " · refreshed " + new Date(r.refreshedAt).toLocaleString("en-IN") : " · not refreshed yet"}
+                  </div>
+                )}
+                <div className="b mono">{r.handles ? r.handles.split(",").join("  ›  ") : "(nothing pinned right now)"}</div>
                 {(() => {
                   const col = r.collection || "all";
                   const base = `https://${preview.domain}/collections/${col}`;
@@ -311,7 +386,8 @@ export default function AdPinsPage() {
                 })()}
               </div>
               <div className="acts">
-                <button className="btn" disabled={busy} onClick={() => setForm({ id: r.id, keyword: r.keyword, handles: r.handles, collection: r.collection || "" })}>Edit</button>
+                {r.mode === "auto" && <button className="btn" disabled={busy} onClick={() => send({ type: "refresh", id: r.id })}>Refresh</button>}
+                <button className="btn" disabled={busy} onClick={() => setForm({ id: r.id, keyword: r.keyword, handles: r.handles || "", collection: r.collection || "", mode: r.mode || "manual", metric: r.metric || "orders", windowDays: r.windowDays || 7, topN: r.topN || 16, scope: r.scope || "ad" })}>Edit</button>
                 <button className="btn" disabled={busy} onClick={() => send({ type: "toggle", id: r.id })}>{r.active ? "Turn off" : "Turn on"}</button>
                 <button className="btn btn-danger" disabled={busy} onClick={() => confirm("Delete this rule?") && send({ type: "delete", id: r.id })}>Delete</button>
               </div>

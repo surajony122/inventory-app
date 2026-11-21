@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "crypto";
 import prisma from "../db.server";
 import { getShopCredentials, ADMIN_API_VERSION } from "../shopify-admin.server";
+import { refreshAutoRules } from "../ad-pins.server";
 
 const PAY_MAP = {
   paid:           "Paid",
@@ -145,6 +146,9 @@ export const action = async ({ request }) => {
     const count = await fetchAllOrders(creds.shop, creds.accessToken, days);
     const secs  = ((Date.now() - t0) / 1000).toFixed(1);
     console.log(`[cron-sync] ✅ Synced ${count} orders in ${secs}s`);
+    // keep the Ad Pins auto lists fresh (never blocks the order sync)
+    try { const r = await refreshAutoRules(); console.log(`[cron-sync] ad-pins auto rules refreshed: ${r.ok}${r.errors.length ? " errors: " + r.errors.join(" | ") : ""}`); }
+    catch (e) { console.error("[cron-sync] ad-pins refresh failed:", e.message); }
     return Response.json({ ok: true, synced: count, elapsed: `${secs}s`, shop: creds.shop });
   } catch (err) {
     console.error("[cron-sync] ❌ Failed:", err.message);

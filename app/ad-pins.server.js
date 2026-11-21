@@ -289,3 +289,147 @@ export async function suggestRules(rows) {
   }
   return out;
 }
+
+
+// ───────────────────────── Auto mode: live product lists ─────────────────────────
+// Needs the "read reports" permission on the app (ShopifyQL). Orders-based modes read the store's sales data;
+// views / add-to-cart are Shopify's session reports and only cover visits that LAND on a product page.
+export const METRICS = [
+  { id: "orders",  label: "Most orders",                         note: "number of orders containing the product" },
+  { id: "units",   label: "Most units sold",                     note: "total quantity sold" },
+  { id: "revenue", label: "Most revenue",                        note: "net sales" },
+  { id: "views",   label: "Most viewed (product-page landings)", note: "sessions that started on the product page" },
+  { id: "carts",   label: "Most added to cart (product-page landings)", note: "sessions that started on the product page and added to cart" },
+];
+const EXCLUDE = new Set((process.env.AD_PIN_EXCLUDE_HANDLES || "gift-wrap,free-silver-coin,potli").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean));
+const normText = (s) => String(s || "").replace(/\s+/g, " ").trim().toLowerCase();
+
+async function shopifyql(admin, query) {
+  let d;
+  try {
+    d = await gql(admin, `query($q: String!) { shopifyqlQuery(query: $q) { tableData { rows } parseErrors } }`, { q: query });
+  } catch (e) {
+    if (/read_reports|access denied/i.test(e.message)) {
+      throw new Error("The app needs the 'read reports' permission to build live lists. Add read_reports to the app's access scopes, deploy, and approve it in Shopify admin (see the steps on the page).");
+    }
+    throw e;
+  }
+  const r = d.shopifyqlQuery;
+  if (r.parseErrors && r.parseErrors.length) throw new Error("Shopify report error: " + r.parseErrors.join("; "));
+  return (r.tableData && r.tableData.rows) || [];
+}
+
+function handleFromPath(path) {
+  const m = String(path || "").match(/\/products\/([^\/?#]+)/);
+  if (!m) return "";
+  try { return decodeURIComponent(m[1]).toLowerCase(); } catch (e) { return m[1].toLowerCase(); }
+}
+
+async function collectionHandles(admin, handle) {
+  const out = new Set();
+  let after = null;
+  for (let i = 0; i < 12; i++) {
+    const d = await gql(admin, `query($h: String!, $after: String) { collectionByHandle(handle: $h) { products(first: 250, after: $after) { pageInfo { hasNextPage endCursor } nodes { handle } } } }`, { h: handle, after });
+    const c = d.collectionByHandle;
+    if (!c) break;
+    c.products.nodes.forEach((n) => out.add(n.handle));
+    if (!c.products.pageInfo.hasNextPage) break;
+    after = c.products.pageInfo.endCursor;
+  }
+  return out;
+}
+
+// product ids -> handles of ACTIVE, in-stock products
+async function liveHandles(admin, ids) {
+  const out = new Map();
+  for (let i = 0; i < ids.length; i += 100) {
+    const chunk = ids.slice(i, i + 100).map((id) => `gid://shopify/Product/${id}`);
+    const d = await gql(admin, `query($ids: [ID!]!) { nodes(ids: $ids) { ... on Product { id handle status totalInventory tracksInventory } } }`, { ids: chunk });
+    (d.nodes || []).forEach((n) => {
+      if (!n || !n.handle) return;
+      if (n.status !== "ACTIVE") return;
+      if (n.tracksInventory && !(n.totalInventory > 0)) return;
+      out.set(String(n.id).split("/").pop(), n.handle.toLowerCase());
+    });
+  }
+  return out;
+}
+
+// Returns { handles, note }. scope "ad" only counts visitors / orders whose tags contain the rule keyword.
+export async function computeAutoHandles(rule) {
+  const admin = await getAdmin();
+  const days = Math.min(Math.max(parseInt(rule.windowDays, 10) || 7, 1), 90);
+  const topN = Math.min(Math.max(parseInt(rule.topN, 10) || 16, 1), 40);
+  const metric = METRICS.some((m) => m.id === rule.metric) ? rule.metric : "orders";
+  const scope = rule.scope === "collection" ? "collection" : "ad";
+  const kw = normText(rule.keyword);
+  const since = `-${days}d`;
+  const sales = ["orders", "units", "revenue"].includes(metric);
+  const col = { orders: "orders", units: "quantity_ordered", revenue: "net_sales", views: "sessions", carts: "sessions_with_cart_additions" }[metric];
+
+  // score per key (product id for sales, handle for sessions); with scope "ad" take the best of the three tag fields
+  const perDim = [];
+  const dims = scope === "ad"
+    ? (sales ? ["order_utm_campaign", "order_utm_term", "order_utm_content"] : ["utm_campaign", "utm_term", "utm_content"])
+    : [null];
+  for (const dim of dims) {
+    const m = new Map();
+    let q;
+    if (sales) {
+      q = dim ? `FROM sales SHOW ${col} GROUP BY ${dim}, product_id SINCE ${since} UNTIL today ORDER BY ${col} DESC LIMIT 1000`
+              : `FROM sales SHOW ${col} GROUP BY product_id SINCE ${since} UNTIL today ORDER BY ${col} DESC LIMIT 1000`;
+    } else {
+      q = dim ? `FROM sessions SHOW ${col} GROUP BY ${dim}, landing_page_path SINCE ${since} UNTIL today ORDER BY ${col} DESC LIMIT 1000`
+              : `FROM sessions SHOW ${col} GROUP BY landing_page_path SINCE ${since} UNTIL today ORDER BY ${col} DESC LIMIT 1000`;
+    }
+    const rows = await shopifyql(admin, q);
+    for (const r of rows) {
+      if (dim && !normText(r[dim]).includes(kw)) continue;
+      const key = sales ? String(r.product_id || "") : handleFromPath(r.landing_page_path);
+      if (!key) continue;
+      m.set(key, (m.get(key) || 0) + (Number(r[col]) || 0));
+    }
+    perDim.push(m);
+  }
+  const score = new Map();
+  perDim.forEach((m) => m.forEach((v, k) => score.set(k, Math.max(score.get(k) || 0, v))));
+  const ranked = [...score.entries()].sort((a, b) => b[1] - a[1]);
+
+  let handles = [];
+  if (sales) {
+    const live = await liveHandles(admin, ranked.slice(0, 200).map(([id]) => id));
+    handles = ranked.map(([id]) => live.get(id)).filter(Boolean);
+  } else {
+    handles = ranked.map(([h]) => h);
+  }
+  handles = handles.filter((h) => !EXCLUDE.has(h));
+  if (rule.collection) {
+    const members = await collectionHandles(admin, rule.collection);
+    if (members.size) handles = handles.filter((h) => members.has(h));
+  }
+  handles = [...new Set(handles)].slice(0, topN);
+  const label = METRICS.find((x) => x.id === metric).label.toLowerCase();
+  const note = handles.length
+    ? `${handles.length} products by ${label}, last ${days} day${days === 1 ? "" : "s"}, ${scope === "ad" ? "this ad only" : "everyone"}`
+    : `no ${scope === "ad" ? "visits or orders from this ad" : "data"} in the last ${days} day${days === 1 ? "" : "s"}: nothing is pinned`;
+  return { handles, note };
+}
+
+// Recomputes one auto rule and publishes it. Returns the updated rule.
+export async function refreshAutoRule(id) {
+  const rule = await prisma.adPinRule.findUnique({ where: { id } });
+  if (!rule || rule.mode !== "auto") return rule;
+  const { handles, note } = await computeAutoHandles(rule);
+  const updated = await prisma.adPinRule.update({ where: { id }, data: { handles: handles.join(","), autoNote: note, refreshedAt: new Date() } });
+  await publishRule(updated);
+  return updated;
+}
+
+export async function refreshAutoRules() {
+  const rules = await prisma.adPinRule.findMany({ where: { mode: "auto", active: true } });
+  let ok = 0; const errors = [];
+  for (const r of rules) {
+    try { await refreshAutoRule(r.id); ok += 1; } catch (e) { errors.push(`${r.keyword}: ${e.message}`); }
+  }
+  return { ok, errors };
+}
