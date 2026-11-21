@@ -153,20 +153,23 @@ function pathOf(u) {
   }
 }
 
-// The utm_campaign the ad puts on its link (from the ad's URL parameters). This is what the storefront sees.
-// Meta fills macros in at click time: {{ad.name}}, {{adset.name}}, {{campaign.name}}. We fill them in the same way.
-function utmCampaignFrom(urlTags, names) {
-  if (!urlTags) return "";
-  let v = "";
-  try { v = new URLSearchParams(String(urlTags).replace(/^\?/, "")).get("utm_campaign") || ""; } catch (e) { return ""; }
-  v = v.trim();
+// The tag the storefront can match on. Your ads put the AD name in utm_term (utm_term={{ad.name}}) and the campaign name in
+// utm_campaign. Meta fills the macros {{ad.name}}, {{adset.name}}, {{campaign.name}} at click time; we fill them the same way.
+// Order of preference: utm_term (the ad), then utm_campaign.
+function fillMacros(v, names) {
+  v = String(v || "").trim();
   if (!v) return "";
   v = v
     .replace(/\{\{\s*campaign\.name\s*\}\}/gi, names.campaign || "")
     .replace(/\{\{\s*adset\.name\s*\}\}/gi, names.adset || "")
     .replace(/\{\{\s*ad\.name\s*\}\}/gi, names.ad || "");
-  if (v.includes("{{")) return "";
-  return v.trim();
+  return v.includes("{{") ? "" : v.trim();
+}
+function utmCampaignFrom(urlTags, names) {
+  if (!urlTags) return "";
+  let params;
+  try { params = new URLSearchParams(String(urlTags).replace(/^\?/, "")); } catch (e) { return ""; }
+  return fillMacros(params.get("utm_term"), names) || fillMacros(params.get("utm_campaign"), names);
 }
 
 // Copies of an ad ("... – Copy 3") carry their own name in the link, so rules match the name without the copy suffix.
