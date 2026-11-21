@@ -64,7 +64,12 @@ export const loader = async ({ request }) => {
   const g = await requireAdmin(request);
   if (g.redirect) return g.redirect;
   const rules = await prisma.adPinRule.findMany({ orderBy: { createdAt: "asc" } });
-  return { rules, meta: metaStatus() };
+  // Where the "Preview" links open. PREVIEW_THEME_ID is the theme to look at (default: the "new ui" theme).
+  const preview = {
+    themeId: process.env.PREVIEW_THEME_ID || "156757819529",
+    domain: process.env.STOREFRONT_DOMAIN || "unniyarcha.com",
+  };
+  return { rules, meta: metaStatus(), preview };
 };
 
 export const action = async ({ request }) => {
@@ -134,7 +139,7 @@ export const action = async ({ request }) => {
 const EMPTY = { id: "", keyword: "", handles: "", collection: "" };
 
 export default function AdPinsPage() {
-  const { rules, meta } = useLoaderData();
+  const { rules, meta, preview } = useLoaderData();
   const result = useActionData();
   const nav = useNavigation();
   const submit = useSubmit();
@@ -291,6 +296,19 @@ export default function AdPinsPage() {
                   {r.collection && <span className="pill">collection: {r.collection}</span>}
                 </div>
                 <div className="b mono">{r.handles.split(",").join("  ›  ")}</div>
+                {(() => {
+                  const col = r.collection || "all";
+                  const base = `https://${preview.domain}/collections/${col}`;
+                  const adLink = `${base}?preview_theme_id=${preview.themeId}&utm_source=Meta&utm_medium=Paid&utm_term=${encodeURIComponent(r.keyword)}&fbclid=preview-test`;
+                  const normalLink = `${base}?preview_theme_id=${preview.themeId}`;
+                  return (
+                    <div style={{ marginTop: 6, fontSize: 12 }}>
+                      Preview: <a href={adLink} target="_blank" rel="noreferrer">as an ad visitor (pinned)</a>
+                      {" · "}
+                      <a href={normalLink} target="_blank" rel="noreferrer">normal visitor</a>
+                    </div>
+                  );
+                })()}
               </div>
               <div className="acts">
                 <button className="btn" disabled={busy} onClick={() => setForm({ id: r.id, keyword: r.keyword, handles: r.handles, collection: r.collection || "" })}>Edit</button>
