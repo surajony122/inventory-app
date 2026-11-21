@@ -203,6 +203,9 @@ export default function AdPinsPage() {
                   <tr key={s.campaign}>
                     <td className="mono">
                       {s.campaign}
+                      {s.adNames && s.adNames.length > 0 && (
+                        <div style={{ fontFamily: "inherit", marginTop: 3 }}>Ads: {s.adNames.join(" · ")}{s.ads > s.adNames.length ? " …" : ""}</div>
+                      )}
                       <div style={{ color: "var(--text-3)", fontFamily: "inherit", marginTop: 3 }}>
                         {s.fromUtm ? "utm_campaign from the ad link" : "Meta campaign name (no utm_campaign in the ad link)"}
                         {s.fromUtm && s.metaNames[0] !== s.campaign ? " · Meta: " + s.metaNames.join(" / ") : ""}
@@ -231,10 +234,14 @@ export default function AdPinsPage() {
             <h2>All active ads ({result.rows.length})</h2>
             <div className="sub">Every ad Meta returned, with where its link goes. “Landing” says whether the link opens a product, a collection or something else.</div>
             <table className="tbl">
-              <thead><tr><th>Campaign</th><th>Ad</th><th>Format</th><th>Landing</th><th>Destination link(s)</th></tr></thead>
+              <thead><tr><th>Preview</th><th>Campaign</th><th>Ad name</th><th>Format</th><th>Landing</th><th>Destination link(s)</th></tr></thead>
               <tbody>
                 {result.rows.map((r, i) => (
                   <tr key={i}>
+                    <td>
+                      {r.thumb ? <img src={r.thumb} alt="" width="56" style={{ borderRadius: 6, display: "block" }} /> : <span style={{ color: "var(--text-3)" }}>no image</span>}
+                      {r.preview && <a href={r.preview} target="_blank" rel="noreferrer" style={{ fontSize: 11 }}>Open ad preview</a>}
+                    </td>
                     <td className="mono">{r.campaign}</td>
                     <td>{r.ad}</td>
                     <td>{r.format}</td>

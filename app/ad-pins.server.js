@@ -191,7 +191,7 @@ export async function fetchMetaAds({ maxPages = 5 } = {}) {
   if (!metaStatus().configured) throw new Error("Meta is not connected yet. Add META_ACCESS_TOKEN and META_AD_ACCOUNT_ID in the server settings.");
   const acct = "act_" + String(process.env.META_AD_ACCOUNT_ID).replace(/^act_/, "");
   let json = await graph(`${acct}/ads`, {
-    fields: "name,effective_status,campaign{name},adset{name},creative{object_type,object_story_spec,asset_feed_spec,product_set_id,link_url,url_tags}",
+    fields: "name,effective_status,preview_shareable_link,campaign{name},adset{name},creative{object_type,object_story_spec,asset_feed_spec,product_set_id,link_url,url_tags,thumbnail_url}",
     effective_status: JSON.stringify(["ACTIVE"]),
     limit: "100",
   });
@@ -206,6 +206,9 @@ export async function fetchMetaAds({ maxPages = 5 } = {}) {
         campaign: ad.campaign?.name || "(no campaign)",
         utm: utmCampaignFrom(d.urlTags, ad.campaign?.name),
         adset: ad.adset?.name || "",
+        adId: ad.id,
+        thumb: ad.creative?.thumbnail_url || "",
+        preview: ad.preview_shareable_link || "",
         ad: ad.name,
         format: d.format,
         links: d.links.slice(0, 6),
@@ -241,7 +244,7 @@ export async function suggestRules(rows) {
   const by = new Map();
   for (const r of rows) {
     const key = r.utm || r.campaign;
-    const g = by.get(key) || { campaign: key, metaNames: new Set(), fromUtm: !!r.utm, formats: new Set(), handles: [], collection: "", ads: 0, landings: new Set(), sets: new Set(), paths: new Map() };
+    const g = by.get(key) || { campaign: key, metaNames: new Set(), fromUtm: !!r.utm, formats: new Set(), handles: [], collection: "", ads: 0, landings: new Set(), sets: new Set(), paths: new Map(), adNames: [] };
     g.formats.add(r.format);
     g.landings.add(r.landing);
     g.ads += 1;
@@ -249,6 +252,7 @@ export async function suggestRules(rows) {
     if (!g.collection && r.collection) g.collection = r.collection;
     if (r.productSetId) g.sets.add(r.productSetId);
     (r.paths || []).forEach((p) => g.paths.set(p, (g.paths.get(p) || 0) + 1));
+    if (r.ad && g.adNames.length < 3 && !g.adNames.includes(r.ad)) g.adNames.push(r.ad);
     g.metaNames.add(r.campaign);
     by.set(key, g);
   }
@@ -262,6 +266,7 @@ export async function suggestRules(rows) {
     out.push({
       campaign: g.campaign,
       fromUtm: g.fromUtm,
+      adNames: g.adNames,
       metaNames: [...g.metaNames].slice(0, 3),
       formats: [...g.formats].join(", "),
       landings: [...g.landings].join(", "),
