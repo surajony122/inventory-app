@@ -268,7 +268,7 @@ export default function AdPinsPage() {
             </div>
             <div>
               <label className="lbl">Product handles or links (in order, comma separated)</label>
-              <input className="inp" value={form.handles} onChange={set("handles")} placeholder="925-pure-silver-ruby-bloom-drop-earrings, ..." />
+              <input className="inp" value={form.handles} onChange={set("handles")} placeholder="up to 40 handles, in order: the first 16 or more make a full first screen" />
             </div>
             <div>
               <label className="lbl">Only on collection (optional)</label>

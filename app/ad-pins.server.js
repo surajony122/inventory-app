@@ -34,7 +34,7 @@ export function cleanHandles(input) {
       v = v.split("?")[0].split("#")[0].split("/")[0].trim().toLowerCase();
       if (v && !out.includes(v)) out.push(v);
     });
-  return out.slice(0, 12);
+  return out.slice(0, 40);
 }
 
 async function ensureDefinition(admin) {
