@@ -409,9 +409,28 @@ export async function computeAutoHandles(rule) {
   }
   handles = [...new Set(handles)].slice(0, topN);
   const label = METRICS.find((x) => x.id === metric).label.toLowerCase();
-  const note = handles.length
-    ? `${handles.length} products by ${label}, last ${days} day${days === 1 ? "" : "s"}, ${scope === "ad" ? "this ad only" : "everyone"}`
-    : `no ${scope === "ad" ? "visits or orders from this ad" : "data"} in the last ${days} day${days === 1 ? "" : "s"}: nothing is pinned`;
+  const period = `last ${days} day${days === 1 ? "" : "s"}`;
+  let note;
+  if (handles.length) {
+    note = `${handles.length} product${handles.length === 1 ? "" : "s"} by ${label}, ${period}, ${scope === "ad" ? "this ad only" : "everyone"}`;
+    if (scope === "ad" && handles.length < Math.min(topN, 4)) {
+      note += `. Only ${handles.length} product${handles.length === 1 ? " has" : "s have"} data for this ad (single-product ads are normal): the rest of the page keeps your usual order`;
+    }
+  } else if (scope === "ad") {
+    // explain WHY it is empty: how many visits did this ad get in the period?
+    let visits = 0;
+    try {
+      for (const dim of ["utm_campaign", "utm_term", "utm_content"]) {
+        const rows = await shopifyql(admin, `FROM sessions SHOW sessions GROUP BY ${dim} SINCE ${since} UNTIL today ORDER BY sessions DESC LIMIT 1000`);
+        for (const r of rows) if (normText(r[dim]).includes(kw)) visits = Math.max(visits, Number(r.sessions) || 0);
+      }
+    } catch (e) { /* the explanation is a courtesy only */ }
+    note = visits
+      ? `this ad had ${visits} visit${visits === 1 ? "" : "s"} in the ${period} but no ${sales ? "orders" : "product-page landings"} to rank: try a longer look-back, or another ranking`
+      : `no visits from this ad in the ${period} (check the keyword matches the ad's tag, or try a longer look-back): nothing is pinned`;
+  } else {
+    note = `no data in the ${period}: nothing is pinned`;
+  }
   return { handles, note };
 }
 
