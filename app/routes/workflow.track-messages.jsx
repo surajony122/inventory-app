@@ -155,7 +155,6 @@ export default function TrackMessages() {
               <div className="b">{n.body}</div>
               <button className="btn" onClick={() => { setForm({ id: n.id, title: n.title, body: n.body, fromDate: n.fromDate, toDate: n.toDate, appliesTo: n.appliesTo }); window.scrollTo(0, 0); }}>Edit</button>
               <button className="btn" onClick={() => send({ type: "toggle", id: n.id })}>{n.active ? "Switch off" : "Switch on"}</button>
-              <button className="btn btn-danger" onClick={() => confirm("Delete this message?") && send({ type: "delete", id: n.id })}>Delete</button>
             </div>
           ))}
         </div>

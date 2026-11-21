@@ -21,6 +21,7 @@ export function istDay(iso) {
 }
 
 export async function noticesFor(orders) {
+  await seedNotices();
   const list = await prisma.trackNotice.findMany({ where: { active: true }, orderBy: { createdAt: "asc" } });
   return (o, status) => {
     const day = istDay(o.createdAt);
