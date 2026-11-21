@@ -225,7 +225,10 @@ export default function WorkflowUsers() {
             <Link to="/workflow/users" className="hd-link active">Manage Users</Link>
           )}
           {currentUser?.email?.toLowerCase() === "skpjony@gmail.com" && (
-            <Link to="/workflow/blocks" className="hd-link">Checkout Blocks</Link>
+            <>
+              <Link to="/workflow/blocks" className="hd-link">Checkout Blocks</Link>
+              <Link to="/workflow/ad-pins" className="hd-link">Ad Pins</Link>
+            </>
           )}
           <button className="hd-link" onClick={doLogout}>Sign Out</button>
         </div>

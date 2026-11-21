@@ -467,7 +467,10 @@ export default function WorkflowInventory() {
             <Link to="/workflow/users" className="hd-link">Manage Users</Link>
           )}
           {user?.email?.toLowerCase() === "skpjony@gmail.com" && (
-            <Link to="/workflow/blocks" className="hd-link">Checkout Blocks</Link>
+            <>
+              <Link to="/workflow/blocks" className="hd-link">Checkout Blocks</Link>
+              <Link to="/workflow/ad-pins" className="hd-link">Ad Pins</Link>
+            </>
           )}
           <button className="hd-link" onClick={doLogout}>Sign Out</button>
         </div>

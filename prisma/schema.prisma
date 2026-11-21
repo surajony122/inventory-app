@@ -99,3 +99,17 @@ model CheckoutBlock {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// Pinned products on collection pages for ad visitors.
+// A visit whose utm_campaign / utm_content contains `keyword` sees `handles` first on the collection page.
+model AdPinRule {
+  id         String   @id @default(cuid())
+  keyword    String   // matched (contains, case-insensitive) against utm_campaign / utm_content
+  handles    String   // comma-separated product handles, in the order to show them
+  collection String?  // optional: only apply on this collection handle
+  active     Boolean  @default(true)
+  source     String   @default("manual") // "manual" | "meta"
+  note       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
