@@ -3,7 +3,7 @@ import prisma from "./db.server";
 export const DEFAULT_OCT = {
   title: "A small apology from Unniyarcha",
   body:
-    "We are sorry for the delay on your October order. To thank you for your patience, a free gift will be sent along with your order. We truly appreciate you being with us.",
+    "Apologies for the delay. Your order is getting our full attention, and tracking will appear here as soon as it ships. Thank you for your patience and trust.",
   fromDate: "2026-10-01",
   toDate: "2026-10-31",
   appliesTo: "all",
@@ -11,6 +11,11 @@ export const DEFAULT_OCT = {
 
 // First time only: create the October apology message so the page works straight away.
 export async function seedNotices() {
+  // one-time wording change: replace the first draft (free gift / October) with the chosen text
+  await prisma.trackNotice.updateMany({
+    where: { title: "A small apology from Unniyarcha", body: { contains: "free gift" } },
+    data: { body: DEFAULT_OCT.body },
+  });
   const n = await prisma.trackNotice.count();
   if (n === 0) await prisma.trackNotice.create({ data: { ...DEFAULT_OCT, active: true } });
 }
