@@ -24,6 +24,7 @@ export async function noticesFor(orders) {
   await seedNotices();
   const list = await prisma.trackNotice.findMany({ where: { active: true }, orderBy: { createdAt: "asc" } });
   return (o, status) => {
+    if (status === "cancelled") return null;
     const day = istDay(o.createdAt);
     const hit = list.find((n) => day >= n.fromDate && day <= n.toDate && (n.appliesTo === "all" || status === "processing"));
     return hit ? { title: hit.title, body: hit.body } : null;
