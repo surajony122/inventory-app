@@ -1,5 +1,6 @@
 import { authenticate, unauthenticated } from "../shopify.server";
 import { getShopCredentials } from "../shopify-admin.server";
+import { noticesFor } from "../track-notices.server";
 
 // Storefront order tracking (Shopify App Proxy: https://unniyarcha.com/apps/track).
 // Customer gives an order number and/or phone number. Only status + tracking links are returned
@@ -116,5 +117,7 @@ export const loader = async ({ request }) => {
     return json({ error: "Could not check right now. Please try again in a moment." }, 500);
   }
 
-  return json({ orders: nodes.map(shape) });
+  let pick = () => null;
+  try { pick = await noticesFor(nodes); } catch (e) { console.error("track notices", e.message); }
+  return json({ orders: nodes.map((o) => { const r = shape(o); r.notice = pick(o, r.status); return r; }) });
 };

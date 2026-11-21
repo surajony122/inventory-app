@@ -121,3 +121,16 @@ model AdPinRule {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
+
+// Extra message on the storefront Track Order page for orders placed within a date range (IST).
+model TrackNotice {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  fromDate  String   // YYYY-MM-DD, order date (IST), inclusive
+  toDate    String   // YYYY-MM-DD, inclusive
+  appliesTo String   @default("all") // "all" | "processing"
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

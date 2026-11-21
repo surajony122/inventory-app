@@ -1004,6 +1004,7 @@ export function InnerOrdersWorkflow({ init, initInv, user, isEmpty }) {
             <>
               <Link to="/workflow/blocks" className="hd-link">Checkout Blocks</Link>
               <Link to="/workflow/ad-pins" className="hd-link">Ad Pins</Link>
+              <Link to="/workflow/track-messages" className="hd-link">Order Messages</Link>
             </>
           )}
           <button className="hd-link" onClick={doLogout}>Sign Out</button>
